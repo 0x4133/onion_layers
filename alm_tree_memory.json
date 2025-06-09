@@ -1,0 +1,50 @@
+{
+  "nodes": {
+    "c46127a4-65aa-43d2-b720-75484572b88e": {
+      "id": "c46127a4-65aa-43d2-b720-75484572b88e",
+      "user_input": "hello",
+      "ai_response": "Hello there! How can I help you today? 😊 \n\nIs there anything you'd like to chat about, or were you just saying hello?",
+      "parent_id": null,
+      "timestamp": "2025-06-09T23:33:07.617862",
+      "children": [
+        "c35291fe-8d99-49c8-8736-d8ed1ac55c13"
+      ]
+    },
+    "c35291fe-8d99-49c8-8736-d8ed1ac55c13": {
+      "id": "c35291fe-8d99-49c8-8736-d8ed1ac55c13",
+      "user_input": "We are testing out a new app",
+      "ai_response": "That’s fantastic! I’m really interested to hear about it. What kind of app is it? What does it do? 😊  Tell me all about the testing process – are you gathering feedback, or just seeing how it performs?",
+      "parent_id": "c46127a4-65aa-43d2-b720-75484572b88e",
+      "timestamp": "2025-06-09T23:33:19.476286",
+      "children": [
+        "341e7f32-ff98-4301-8c20-7ebc7ecf86b6",
+        "287a205d-18be-4feb-b4ee-74217abe8141"
+      ]
+    },
+    "341e7f32-ff98-4301-8c20-7ebc7ecf86b6": {
+      "id": "341e7f32-ff98-4301-8c20-7ebc7ecf86b6",
+      "user_input": "who made you",
+      "ai_response": "That’s a great question! I was created by the Gemma team at Google DeepMind. They're an open-weights AI assistant, which means I’m widely available for public use! 😊",
+      "parent_id": "c35291fe-8d99-49c8-8736-d8ed1ac55c13",
+      "timestamp": "2025-06-09T23:33:49.195967",
+      "children": []
+    },
+    "1b3ab258-174c-4851-a170-e247b81f1350": {
+      "id": "1b3ab258-174c-4851-a170-e247b81f1350",
+      "user_input": "who are you",
+      "ai_response": "Okay, here's my response to \"Who are you?\":\n\nI am a large language model, created by the Gemma team at Google DeepMind. I’m an open-weights model, which means I’m widely available for public use! I’m designed to take text and images as input and respond with text. \n\nBasically, I've been trained on a massive amount of text data, and I use that knowledge to generate responses – I can try to answer your questions, create different kinds of creative content, and much more. \n\nYou can learn more about me and my capabilities on the Gemma project page: [https://gemma.google.dev/](https://gemma.google.dev/)",
+      "parent_id": null,
+      "timestamp": "2025-06-09T23:42:04.770094",
+      "children": []
+    },
+    "287a205d-18be-4feb-b4ee-74217abe8141": {
+      "id": "287a205d-18be-4feb-b4ee-74217abe8141",
+      "user_input": "Hello",
+      "ai_response": "Hello there! That’s great to hear from you. 😊 What’s on your mind today?",
+      "parent_id": "c35291fe-8d99-49c8-8736-d8ed1ac55c13",
+      "timestamp": "2025-06-09T23:45:56.141732",
+      "children": []
+    }
+  },
+  "root_id": "1b3ab258-174c-4851-a170-e247b81f1350"
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual ALM - Autonomous Language Model</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/vis-network@latest/dist/vis-network.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Visual ALM</h2>
+                <p>Click on any node in the tree to start a conversation from that point!</p>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="controls">
+                    <button onclick="resetTree()">Reset Tree</button>
+                    <button onclick="centerView()">Center View</button>
+                    <button onclick="checkOllamaStatus()">Check Ollama</button>
+                </div>
+                
+                <div id="selectedNodeInfo">
+                    <div class="node-info">
+                        <h3>Instructions</h3>
+                        <p>• Type a message below to start the conversation</p>
+                        <p>• Click on any node in the tree to branch from that point</p>
+                        <p>• The tree shows your conversation paths visually</p>
+                        <p>• Green nodes are your messages, blue are AI responses</p>
+                        <p>• Make sure Ollama is running locally</p>
+                    </div>
+                </div>
+                
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>AI is thinking...</p>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div id="messages"></div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="tree-container">
+                <div id="tree-network"></div>
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()" id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load external JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html> 
