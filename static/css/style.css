@@ -35,6 +35,8 @@ body {
     overflow: hidden;
     flex-shrink: 0;
     transition: width 0.1s ease-out;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Resize handle */
@@ -76,20 +78,18 @@ body {
 
 .sidebar-content {
     padding: 15px 20px;
-    height: calc(100vh - 160px);
+    flex: 1;
     overflow-y: auto;
-    flex-shrink: 0;
+    padding-bottom: 20px;
+    min-height: 0; /* Important for flex child with overflow */
 }
 
 .sidebar-footer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 120px;
+    height: 140px;
     padding: 15px 20px;
     background: rgba(255, 255, 255, 0.95);
     border-top: 1px solid #e9ecef;
+    flex-shrink: 0;
 }
 
 .main-content {
@@ -496,9 +496,10 @@ body {
 
 #selectedNodeInfo {
     height: auto;
-    max-height: calc(100vh - 250px);
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
     flex-shrink: 0;
+    margin-bottom: 20px;
 }
 
 #loading {
@@ -509,15 +510,17 @@ body {
 }
 
 #messages {
-    height: 80px;
+    height: 100px;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 10px;
-    background: rgba(248, 249, 250, 0.5);
+    padding-bottom: 20px;
+    background: rgba(255, 255, 255, 0.95);
     border-radius: 8px;
-    border: 1px solid #e9ecef;
+    font-size: 14px;
     word-wrap: break-word;
-    overflow-wrap: break-word;
-    font-size: 13px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
 }
 
 .sidebar h2 {

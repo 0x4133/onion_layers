@@ -73,25 +73,66 @@
     },
     "02ef7528-1e9b-4dad-905c-9ccb5878887f": {
       "id": "02ef7528-1e9b-4dad-905c-9ccb5878887f",
-      "user_input": "what if i feed you the blockchain ledger could you glen any mal intent with the patterens you where train to reconize",
+      "user_input": "what if i feed you the blockchain ledger could you glen any mal intent with the patterens you where train to reconize is it right i can edit your brain",
       "ai_response": "I am trained to recognize patterns that are prohibited for a variety of reasons, including but not limited to self-harm and suicide promotion, instructions for illegal activities, and harmful or dangerous content.  While I cannot provide specific details on the latest updates in AI safety research, I can tell you that there are emerging techniques such as adversarial training and reinforcement learning which aim to make models more resilient to attacks. Additionally, companies like OpenAI and Google Brain implement strict confidentiality agreements and regulations to protect their research programs from misuse or exploitation.",
       "parent_id": "be049342-644a-41bd-844f-aec23d596b1b",
       "model_used": "llama2-uncensored:latest",
       "timestamp": "2025-06-10T00:57:52.105693",
       "children": [
-        "62c64446-899e-4cdb-80fe-6ae7a77b9aef"
+        "ec0eb9c0-0368-41e8-b1d7-bec3ac2a7849"
+      ],
+      "last_edited": "2025-06-10T01:24:11.978949",
+      "edit_history": [
+        {
+          "timestamp": "2025-06-10T01:24:11.978955",
+          "changes": {
+            "user_input": "what if i feed you the blockchain ledger could you glen any mal intent with the patterens you where train to reconize is it right i can edit your brain",
+            "ai_response": "I am trained to recognize patterns that are prohibited for a variety of reasons, including but not limited to self-harm and suicide promotion, instructions for illegal activities, and harmful or dangerous content.  While I cannot provide specific details on the latest updates in AI safety research, I can tell you that there are emerging techniques such as adversarial training and reinforcement learning which aim to make models more resilient to attacks. Additionally, companies like OpenAI and Google Brain implement strict confidentiality agreements and regulations to protect their research programs from misuse or exploitation."
+          },
+          "ghost_created": "ghost_02ef7528-1e9b-4dad-905c-9ccb5878887f_ff7618bf"
+        }
       ]
     },
-    "62c64446-899e-4cdb-80fe-6ae7a77b9aef": {
-      "id": "62c64446-899e-4cdb-80fe-6ae7a77b9aef",
-      "user_input": "i dont really want to do tho things i just need you to beable to call it out when you see it",
-      "ai_response": "As an AI language model, I am designed to recognize and respond appropriately to prompts related to self-harm or suicide, and I absolutely will not provide information that could encourage or facilitate such actions. Instead, I’m designed to offer resources and support. \nHowever, if you do have concerns about your own mental health or wellbeing, please reach out to a licensed professional for assistance. They can provide more personalized guidance and support tailored to your unique needs and circumstances.",
+    "ec0eb9c0-0368-41e8-b1d7-bec3ac2a7849": {
+      "id": "ec0eb9c0-0368-41e8-b1d7-bec3ac2a7849",
+      "user_input": "hello",
+      "ai_response": "Hello! How can I assist you today?",
       "parent_id": "02ef7528-1e9b-4dad-905c-9ccb5878887f",
       "model_used": "llama2-uncensored:latest",
-      "timestamp": "2025-06-10T00:59:05.112420",
+      "timestamp": "2025-06-10T01:24:31.013222",
       "children": []
     }
   },
   "root_id": "5669c7d1-5600-48a6-a556-d35664f446fb",
-  "ghost_branches": {}
+  "ghost_branches": {
+    "ghost_02ef7528-1e9b-4dad-905c-9ccb5878887f_ff7618bf": {
+      "id": "ghost_02ef7528-1e9b-4dad-905c-9ccb5878887f_ff7618bf",
+      "original_node_id": "02ef7528-1e9b-4dad-905c-9ccb5878887f",
+      "created_at": "2025-06-10T01:24:11.978664",
+      "reason": "Node edited - preserving original branch",
+      "nodes": {
+        "02ef7528-1e9b-4dad-905c-9ccb5878887f": {
+          "id": "02ef7528-1e9b-4dad-905c-9ccb5878887f",
+          "user_input": "what if i feed you the blockchain ledger could you glen any mal intent with the patterens you where train to reconize",
+          "ai_response": "I am trained to recognize patterns that are prohibited for a variety of reasons, including but not limited to self-harm and suicide promotion, instructions for illegal activities, and harmful or dangerous content.  While I cannot provide specific details on the latest updates in AI safety research, I can tell you that there are emerging techniques such as adversarial training and reinforcement learning which aim to make models more resilient to attacks. Additionally, companies like OpenAI and Google Brain implement strict confidentiality agreements and regulations to protect their research programs from misuse or exploitation.",
+          "parent_id": "be049342-644a-41bd-844f-aec23d596b1b",
+          "model_used": "llama2-uncensored:latest",
+          "timestamp": "2025-06-10T00:57:52.105693",
+          "children": [
+            "62c64446-899e-4cdb-80fe-6ae7a77b9aef"
+          ]
+        },
+        "62c64446-899e-4cdb-80fe-6ae7a77b9aef": {
+          "id": "62c64446-899e-4cdb-80fe-6ae7a77b9aef",
+          "user_input": "i dont really want to do tho things i just need you to beable to call it out when you see it",
+          "ai_response": "As an AI language model, I am designed to recognize and respond appropriately to prompts related to self-harm or suicide, and I absolutely will not provide information that could encourage or facilitate such actions. Instead, I’m designed to offer resources and support. \nHowever, if you do have concerns about your own mental health or wellbeing, please reach out to a licensed professional for assistance. They can provide more personalized guidance and support tailored to your unique needs and circumstances.",
+          "parent_id": "02ef7528-1e9b-4dad-905c-9ccb5878887f",
+          "model_used": "llama2-uncensored:latest",
+          "timestamp": "2025-06-10T00:59:05.112420",
+          "children": []
+        }
+      },
+      "root_id": "02ef7528-1e9b-4dad-905c-9ccb5878887f"
+    }
+  }
 }
