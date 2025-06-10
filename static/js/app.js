@@ -20,6 +20,43 @@ const CONFIG = {
     MODEL_STORAGE_KEY: 'alm_selected_model'
 };
 
+// Configure marked.js for secure markdown rendering
+if (typeof marked !== 'undefined') {
+    marked.setOptions({
+        gfm: true, // GitHub Flavored Markdown
+        breaks: true, // Convert \n to <br>
+        sanitize: false, // We'll handle XSS protection differently
+        smartLists: true,
+        smartypants: true
+    });
+}
+
+// Render markdown content safely
+function renderMarkdown(content) {
+    if (typeof marked === 'undefined') {
+        console.warn('Marked.js not loaded, falling back to plain text');
+        return escapeHtml(content);
+    }
+    
+    try {
+        // Basic XSS protection: remove script tags and other dangerous elements
+        const sanitizedContent = content
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+            .replace(/javascript:/gi, '')
+            .replace(/on\w+\s*=/gi, '');
+        
+        // Render markdown
+        const rendered = marked.parse(sanitizedContent);
+        
+        // Wrap in markdown-content class for styling
+        return `<div class="markdown-content">${rendered}</div>`;
+    } catch (error) {
+        console.error('Error rendering markdown:', error);
+        return `<div class="markdown-content"><p>${escapeHtml(content)}</p></div>`;
+    }
+}
+
 // Initialize the network visualization
 function initNetwork() {
     const container = document.getElementById('tree-network');
@@ -192,6 +229,9 @@ function updateNetworkView() {
         // Create node for AI response
         if (node.ai_response) {
             const isSelected = selectedNodeId === nodeId;
+            // For tooltip, show plain text but indicate markdown support
+            const tooltipText = `ALM: ${escapeHtml(node.ai_response.substring(0, 200))}${node.ai_response.length > 200 ? '...' : ''}\n\n✨ Supports markdown formatting - click to view full formatted response`;
+            
             nodes.push({
                 id: nodeId + '_ai',
                 label: truncateText(node.ai_response, CONFIG.NODE_LABEL_MAX_LENGTH),
@@ -203,7 +243,7 @@ function updateNetworkView() {
                         border: '#0056b3'
                     }
                 },
-                title: `ALM: ${escapeHtml(node.ai_response)}\n\nClick to branch from this point`,
+                title: tooltipText,
                 font: { 
                     multi: true,
                     bold: isSelected
@@ -431,7 +471,7 @@ function updateSelectedNodeInfo() {
                         <strong>🤖 ALM (${modelUsed}):</strong>
                         <span class="message-time">${new Date(pathNode.timestamp).toLocaleTimeString()}</span>
                     </div>
-                    <div class="message-content">${escapeHtml(pathNode.ai_response)}</div>
+                    <div class="message-content">${renderMarkdown(pathNode.ai_response)}</div>
                 </div>`;
             }
         });
@@ -460,6 +500,7 @@ function updateSelectedNodeInfo() {
                 <p>• New messages will continue from this conversation point</p>
                 <p>• The AI will have access to all previous context shown below</p>
                 <p>• This creates a new branch in your conversation tree</p>
+                <p>• <strong>💡 AI responses now support markdown formatting!</strong></p>
             </div>
             
             ${pathHtml}
@@ -495,6 +536,7 @@ function resetSelectedNodeInfo() {
                 <p>• <span style="color: #28a745;">🟢 Green nodes</span> are your messages</p>
                 <p>• <span style="color: #007bff;">🔵 Blue nodes</span> are AI responses</p>
                 <p>• Selected nodes have highlighted borders</p>
+                <p>• ✨ AI responses support <strong>markdown formatting</strong></p>
             </div>
             
             <div class="welcome-section">
@@ -506,6 +548,7 @@ function resetSelectedNodeInfo() {
             
             <div class="tip-section">
                 <p><strong>💡 Pro Tip:</strong> Try different conversation paths to explore how the AI responds differently to various contexts!</p>
+                <p><strong>📝 Markdown Support:</strong> AI responses can include headers, lists, code blocks, tables, and more!</p>
             </div>
         </div>
     `;
