@@ -2,7 +2,7 @@
 alm_memory.json
 alm.log
 *.log
-
+alm_tree_memory.json
 # Python
 __pycache__/
 *.py[cod]
