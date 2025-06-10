@@ -12,6 +12,16 @@ let selectedModel = null;
 let isEditMode = false;
 let ghostBranches = {};
 
+// Voice-related global variables
+let speechSynthesis = null;
+let speechRecognition = null;
+let isListening = false;
+let isSpeaking = false;
+let voiceModeEnabled = false;
+let availableVoices = [];
+let selectedVoice = null;
+let currentUtterance = null;
+
 // Configuration
 const CONFIG = {
     MAX_MESSAGE_LENGTH: 5000,
@@ -19,7 +29,19 @@ const CONFIG = {
     MESSAGE_AUTO_REMOVE_DELAY: 8000,
     STATUS_CHECK_INTERVAL: 30000, // Check Ollama status every 30 seconds
     NODE_LABEL_MAX_LENGTH: 30,
-    MODEL_STORAGE_KEY: 'alm_selected_model'
+    MODEL_STORAGE_KEY: 'alm_selected_model',
+    VOICE_SETTINGS_KEY: 'alm_voice_settings',
+    SPEECH_TIMEOUT: 10000, // 10 seconds timeout for speech recognition
+    TTS_MAX_LENGTH: 1000 // Maximum characters to speak at once
+};
+
+// Voice configuration defaults
+const VOICE_DEFAULTS = {
+    autoTTS: true,
+    autoSTT: false,
+    rate: 1.0,
+    pitch: 1.0,
+    voice: null
 };
 
 // Configure marked.js for secure markdown rendering
@@ -1409,4 +1431,481 @@ function updateModelStatus(status, title) {
             statusEl.textContent = '🔄';
             statusEl.title = 'Unknown status';
     }
+}
+
+// Initialize voice functionality
+function initVoice() {
+    // Initialize Speech Synthesis
+    if ('speechSynthesis' in window) {
+        speechSynthesis = window.speechSynthesis;
+        loadVoices();
+        
+        // Load voices when they become available
+        speechSynthesis.onvoiceschanged = loadVoices;
+    } else {
+        console.warn('Speech Synthesis not supported');
+        showMessage('⚠️ Text-to-speech not supported in this browser', 'error');
+    }
+    
+    // Initialize Speech Recognition
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        speechRecognition = new SpeechRecognition();
+        
+        speechRecognition.continuous = false;
+        speechRecognition.interimResults = false;
+        speechRecognition.lang = 'en-US';
+        
+        speechRecognition.onstart = function() {
+            console.log('Speech recognition started');
+            isListening = true;
+            updateMicButtonState();
+            showVoiceIndicator(true);
+        };
+        
+        speechRecognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            console.log('Speech recognition result:', transcript);
+            
+            // Put the recognized text in the input field
+            const input = document.getElementById('messageInput');
+            input.value = transcript;
+            
+            showMessage(`🎙️ Heard: "${transcript}"`, 'success');
+            
+            // Auto-send if voice mode is enabled
+            if (voiceModeEnabled) {
+                setTimeout(() => {
+                    sendMessage();
+                }, 500); // Small delay to show the recognized text
+            }
+        };
+        
+        speechRecognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            let errorMsg = 'Speech recognition error';
+            
+            switch (event.error) {
+                case 'no-speech':
+                    errorMsg = 'No speech detected. Try speaking louder.';
+                    break;
+                case 'audio-capture':
+                    errorMsg = 'Microphone not accessible. Check permissions.';
+                    break;
+                case 'not-allowed':
+                    errorMsg = 'Microphone permission denied.';
+                    break;
+                case 'network':
+                    errorMsg = 'Network error during speech recognition.';
+                    break;
+                default:
+                    errorMsg = `Speech recognition error: ${event.error}`;
+            }
+            
+            showMessage(`🎙️ ${errorMsg}`, 'error');
+        };
+        
+        speechRecognition.onend = function() {
+            console.log('Speech recognition ended');
+            isListening = false;
+            updateMicButtonState();
+            showVoiceIndicator(false);
+        };
+    } else {
+        console.warn('Speech Recognition not supported');
+        showMessage('⚠️ Speech recognition not supported in this browser', 'error');
+    }
+    
+    // Load saved voice settings
+    loadVoiceSettings();
+    
+    // Initialize voice controls event listeners
+    initVoiceControls();
+}
+
+// Load available voices
+function loadVoices() {
+    if (!speechSynthesis) return;
+    
+    availableVoices = speechSynthesis.getVoices();
+    const voiceSelect = document.getElementById('voiceSelect');
+    
+    if (voiceSelect && availableVoices.length > 0) {
+        voiceSelect.innerHTML = '';
+        
+        // Group voices by language for better UX
+        const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
+        const otherVoices = availableVoices.filter(voice => !voice.lang.startsWith('en'));
+        
+        if (englishVoices.length > 0) {
+            const englishGroup = document.createElement('optgroup');
+            englishGroup.label = 'English Voices';
+            
+            englishVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})${voice.default ? ' [Default]' : ''}`;
+                englishGroup.appendChild(option);
+            });
+            
+            voiceSelect.appendChild(englishGroup);
+        }
+        
+        if (otherVoices.length > 0) {
+            const otherGroup = document.createElement('optgroup');
+            otherGroup.label = 'Other Languages';
+            
+            otherVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                otherGroup.appendChild(option);
+            });
+            
+            voiceSelect.appendChild(otherGroup);
+        }
+        
+        // Set default voice if none selected
+        if (!selectedVoice && englishVoices.length > 0) {
+            const defaultVoice = englishVoices.find(voice => voice.default) || englishVoices[0];
+            selectedVoice = defaultVoice.name;
+            voiceSelect.value = selectedVoice;
+        }
+        
+        console.log(`Loaded ${availableVoices.length} voices`);
+    }
+}
+
+// Initialize voice control event listeners
+function initVoiceControls() {
+    // Rate control
+    const rateSlider = document.getElementById('speechRate');
+    const rateValue = document.getElementById('rateValue');
+    if (rateSlider && rateValue) {
+        rateSlider.addEventListener('input', function() {
+            rateValue.textContent = parseFloat(this.value).toFixed(1);
+            saveVoiceSettings();
+        });
+    }
+    
+    // Pitch control
+    const pitchSlider = document.getElementById('speechPitch');
+    const pitchValue = document.getElementById('pitchValue');
+    if (pitchSlider && pitchValue) {
+        pitchSlider.addEventListener('input', function() {
+            pitchValue.textContent = parseFloat(this.value).toFixed(1);
+            saveVoiceSettings();
+        });
+    }
+    
+    // Auto TTS checkbox
+    const autoTTSCheckbox = document.getElementById('autoTTS');
+    if (autoTTSCheckbox) {
+        autoTTSCheckbox.addEventListener('change', saveVoiceSettings);
+    }
+    
+    // Auto STT checkbox
+    const autoSTTCheckbox = document.getElementById('autoSTT');
+    if (autoSTTCheckbox) {
+        autoSTTCheckbox.addEventListener('change', function() {
+            voiceModeEnabled = this.checked;
+            updateVoiceModeButton();
+            saveVoiceSettings();
+        });
+    }
+}
+
+// Save voice settings to localStorage
+function saveVoiceSettings() {
+    const settings = {
+        autoTTS: document.getElementById('autoTTS')?.checked || VOICE_DEFAULTS.autoTTS,
+        autoSTT: document.getElementById('autoSTT')?.checked || VOICE_DEFAULTS.autoSTT,
+        rate: parseFloat(document.getElementById('speechRate')?.value || VOICE_DEFAULTS.rate),
+        pitch: parseFloat(document.getElementById('speechPitch')?.value || VOICE_DEFAULTS.pitch),
+        voice: document.getElementById('voiceSelect')?.value || VOICE_DEFAULTS.voice
+    };
+    
+    localStorage.setItem(CONFIG.VOICE_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// Load voice settings from localStorage
+function loadVoiceSettings() {
+    try {
+        const saved = localStorage.getItem(CONFIG.VOICE_SETTINGS_KEY);
+        const settings = saved ? JSON.parse(saved) : VOICE_DEFAULTS;
+        
+        // Apply settings to UI elements
+        const autoTTSCheckbox = document.getElementById('autoTTS');
+        if (autoTTSCheckbox) autoTTSCheckbox.checked = settings.autoTTS;
+        
+        const autoSTTCheckbox = document.getElementById('autoSTT');
+        if (autoSTTCheckbox) {
+            autoSTTCheckbox.checked = settings.autoSTT;
+            voiceModeEnabled = settings.autoSTT;
+        }
+        
+        const rateSlider = document.getElementById('speechRate');
+        const rateValue = document.getElementById('rateValue');
+        if (rateSlider && rateValue) {
+            rateSlider.value = settings.rate;
+            rateValue.textContent = settings.rate.toFixed(1);
+        }
+        
+        const pitchSlider = document.getElementById('speechPitch');
+        const pitchValue = document.getElementById('pitchValue');
+        if (pitchSlider && pitchValue) {
+            pitchSlider.value = settings.pitch;
+            pitchValue.textContent = settings.pitch.toFixed(1);
+        }
+        
+        const voiceSelect = document.getElementById('voiceSelect');
+        if (voiceSelect && settings.voice) {
+            selectedVoice = settings.voice;
+            voiceSelect.value = settings.voice;
+        }
+        
+        updateVoiceModeButton();
+    } catch (error) {
+        console.error('Error loading voice settings:', error);
+    }
+}
+
+// Handle voice selection change
+function handleVoiceChange() {
+    const voiceSelect = document.getElementById('voiceSelect');
+    if (voiceSelect) {
+        selectedVoice = voiceSelect.value;
+        saveVoiceSettings();
+        showMessage(`🔊 Voice changed to: ${selectedVoice}`, 'success');
+    }
+}
+
+// Test TTS functionality
+function testTTS() {
+    const testText = "Hello! This is a test of the text to speech functionality. The AI can now speak to you!";
+    speakText(testText, true); // Force speak even if auto TTS is off
+}
+
+// Speak text using TTS
+function speakText(text, forceSpeak = false) {
+    if (!speechSynthesis) {
+        console.warn('Speech synthesis not available');
+        return false;
+    }
+    
+    // Check if auto TTS is enabled or forced
+    const autoTTSEnabled = document.getElementById('autoTTS')?.checked || false;
+    if (!autoTTSEnabled && !forceSpeak) {
+        return false;
+    }
+    
+    // Stop any current speech
+    stopTTS();
+    
+    // Truncate very long text
+    let textToSpeak = text;
+    if (text.length > CONFIG.TTS_MAX_LENGTH) {
+        textToSpeak = text.substring(0, CONFIG.TTS_MAX_LENGTH) + "... [message truncated]";
+        showMessage('📢 Long message truncated for speech', 'info');
+    }
+    
+    // Remove markdown syntax for better speech
+    textToSpeak = cleanTextForSpeech(textToSpeak);
+    
+    if (!textToSpeak.trim()) {
+        return false;
+    }
+    
+    try {
+        currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+        
+        // Set voice if available
+        if (selectedVoice && availableVoices.length > 0) {
+            const voice = availableVoices.find(v => v.name === selectedVoice);
+            if (voice) {
+                currentUtterance.voice = voice;
+            }
+        }
+        
+        // Set speech parameters
+        currentUtterance.rate = parseFloat(document.getElementById('speechRate')?.value || 1.0);
+        currentUtterance.pitch = parseFloat(document.getElementById('speechPitch')?.value || 1.0);
+        currentUtterance.volume = 1.0;
+        
+        // Set up event handlers
+        currentUtterance.onstart = function() {
+            isSpeaking = true;
+            updateTTSButtonState();
+            console.log('Started speaking:', textToSpeak.substring(0, 50) + '...');
+            
+            // Add visual indicator to the AI message
+            addSpeakingIndicator();
+        };
+        
+        currentUtterance.onend = function() {
+            isSpeaking = false;
+            currentUtterance = null;
+            updateTTSButtonState();
+            console.log('Finished speaking');
+            
+            // Remove visual indicator
+            removeSpeakingIndicator();
+        };
+        
+        currentUtterance.onerror = function(event) {
+            console.error('Speech synthesis error:', event.error);
+            isSpeaking = false;
+            currentUtterance = null;
+            updateTTSButtonState();
+            removeSpeakingIndicator();
+            showMessage('🔊 Speech synthesis error', 'error');
+        };
+        
+        // Start speaking
+        speechSynthesis.speak(currentUtterance);
+        return true;
+        
+    } catch (error) {
+        console.error('Error in speech synthesis:', error);
+        showMessage('🔊 Error starting speech synthesis', 'error');
+        return false;
+    }
+}
+
+// Clean text for better speech synthesis
+function cleanTextForSpeech(text) {
+    return text
+        // Remove markdown code blocks
+        .replace(/```[\s\S]*?```/g, '[code block]')
+        // Remove inline code
+        .replace(/`([^`]+)`/g, '$1')
+        // Remove markdown links
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        // Remove markdown headers
+        .replace(/^#{1,6}\s+/gm, '')
+        // Remove markdown emphasis
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/__([^_]+)__/g, '$1')
+        .replace(/_([^_]+)_/g, '$1')
+        // Remove markdown lists
+        .replace(/^\s*[-*+]\s+/gm, '')
+        .replace(/^\s*\d+\.\s+/gm, '')
+        // Clean up extra whitespace
+        .replace(/\n\s*\n/g, '. ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// Stop TTS
+function stopTTS() {
+    if (speechSynthesis && isSpeaking) {
+        speechSynthesis.cancel();
+        isSpeaking = false;
+        currentUtterance = null;
+        updateTTSButtonState();
+        removeSpeakingIndicator();
+        console.log('Speech synthesis stopped');
+    }
+}
+
+// Toggle voice input mode
+function toggleVoiceMode() {
+    voiceModeEnabled = !voiceModeEnabled;
+    const autoSTTCheckbox = document.getElementById('autoSTT');
+    if (autoSTTCheckbox) {
+        autoSTTCheckbox.checked = voiceModeEnabled;
+    }
+    updateVoiceModeButton();
+    saveVoiceSettings();
+    
+    const status = voiceModeEnabled ? 'ON' : 'OFF';
+    showMessage(`🎙️ Voice Mode: ${status}`, 'success');
+}
+
+// Update voice mode button appearance
+function updateVoiceModeButton() {
+    const button = document.getElementById('voiceModeBtn');
+    if (button) {
+        if (voiceModeEnabled) {
+            button.textContent = '🎙️ Voice Mode: ON';
+            button.classList.remove('voice-mode-inactive');
+            button.classList.add('voice-mode-active');
+        } else {
+            button.textContent = '🎙️ Voice Mode: OFF';
+            button.classList.remove('voice-mode-active');
+            button.classList.add('voice-mode-inactive');
+        }
+    }
+}
+
+// Toggle listening state
+function toggleListening() {
+    if (!speechRecognition) {
+        showMessage('🎙️ Speech recognition not supported', 'error');
+        return;
+    }
+    
+    if (isListening) {
+        speechRecognition.stop();
+    } else {
+        try {
+            speechRecognition.start();
+        } catch (error) {
+            console.error('Error starting speech recognition:', error);
+            showMessage('🎙️ Error starting speech recognition', 'error');
+        }
+    }
+}
+
+// Update microphone button state
+function updateMicButtonState() {
+    const micButton = document.getElementById('micButton');
+    if (micButton) {
+        if (isListening) {
+            micButton.classList.add('recording');
+            micButton.title = 'Stop listening';
+            micButton.textContent = '🔴';
+        } else {
+            micButton.classList.remove('recording');
+            micButton.title = 'Start voice input';
+            micButton.textContent = '🎙️';
+        }
+    }
+}
+
+// Update TTS button state
+function updateTTSButtonState() {
+    const stopButton = document.getElementById('stopTTSButton');
+    if (stopButton) {
+        if (isSpeaking) {
+            stopButton.style.display = 'inline-block';
+        } else {
+            stopButton.style.display = 'none';
+        }
+    }
+}
+
+// Show/hide voice indicator
+function showVoiceIndicator(show) {
+    const indicator = document.getElementById('voiceIndicator');
+    if (indicator) {
+        indicator.style.display = show ? 'flex' : 'none';
+    }
+}
+
+// Add speaking indicator to AI messages
+function addSpeakingIndicator() {
+    // Find the most recent AI message and add speaking indicator
+    const aiMessages = document.querySelectorAll('.ai-msg');
+    if (aiMessages.length > 0) {
+        const lastAiMessage = aiMessages[aiMessages.length - 1];
+        lastAiMessage.classList.add('tts-speaking');
+    }
+}
+
+// Remove speaking indicator from AI messages
+function removeSpeakingIndicator() {
+    const speakingMessages = document.querySelectorAll('.tts-speaking');
+    speakingMessages.forEach(msg => msg.classList.remove('tts-speaking'));
 }

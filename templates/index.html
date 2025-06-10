@@ -23,6 +23,37 @@
                     </select>
                     <span id="modelStatus" class="model-status">🔄</span>
                 </div>
+
+                <!-- Voice Settings -->
+                <div class="voice-settings">
+                    <h4>🎙️ Voice Controls</h4>
+                    <div class="voice-controls">
+                        <label class="voice-option">
+                            <input type="checkbox" id="autoTTS" checked>
+                            Auto-speak AI responses
+                        </label>
+                        <label class="voice-option">
+                            <input type="checkbox" id="autoSTT">
+                            Enable voice input mode
+                        </label>
+                    </div>
+                    <div class="tts-settings">
+                        <label for="voiceSelect">Voice:</label>
+                        <select id="voiceSelect" onchange="handleVoiceChange()">
+                            <option value="">Loading voices...</option>
+                        </select>
+                        <div class="voice-controls-row">
+                            <label for="speechRate">Rate:</label>
+                            <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1">
+                            <span id="rateValue">1.0</span>
+                        </div>
+                        <div class="voice-controls-row">
+                            <label for="speechPitch">Pitch:</label>
+                            <input type="range" id="speechPitch" min="0" max="2" step="0.1" value="1">
+                            <span id="pitchValue">1.0</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="sidebar-content">
@@ -30,6 +61,8 @@
                     <button onclick="resetTree()">Reset Tree</button>
                     <button onclick="centerView()">Center View</button>
                     <button onclick="checkOllamaStatus()">Check Ollama</button>
+                    <button onclick="testTTS()">🔊 Test Voice</button>
+                    <button onclick="toggleVoiceMode()" id="voiceModeBtn">🎙️ Voice Mode: OFF</button>
                 </div>
                 
                 <div id="selectedNodeInfo">
@@ -41,6 +74,7 @@
                         <p>• Green nodes are your messages, blue are AI responses</p>
                         <p>• Make sure Ollama is running locally</p>
                         <p>• Drag the resize handle to adjust panel sizes</p>
+                        <p>• <strong>🎙️ Use voice controls to speak with the AI!</strong></p>
                     </div>
                 </div>
                 
@@ -64,7 +98,13 @@
             </div>
             
             <div class="chat-input">
-                <input type="text" id="messageInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+                <div class="voice-indicator" id="voiceIndicator" style="display: none;">
+                    <div class="recording-animation"></div>
+                    <span>Listening...</span>
+                </div>
+                <input type="text" id="messageInput" placeholder="Type your message here or use voice..." onkeypress="handleKeyPress(event)">
+                <button onclick="toggleListening()" id="micButton" class="voice-btn" title="Start voice input">🎙️</button>
+                <button onclick="stopTTS()" id="stopTTSButton" class="stop-btn" title="Stop speaking" style="display: none;">🔇</button>
                 <button onclick="sendMessage()" id="sendButton">Send</button>
             </div>
         </div>

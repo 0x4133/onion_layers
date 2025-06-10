@@ -606,6 +606,64 @@ body {
         flex: none;
         min-width: auto;
     }
+
+    /* Voice controls mobile adjustments */
+    .voice-settings {
+        margin-bottom: 10px;
+        padding: 8px;
+    }
+
+    .voice-settings h4 {
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+
+    .voice-option {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .voice-controls-row {
+        margin-bottom: 6px;
+    }
+
+    .voice-controls-row label {
+        font-size: 11px;
+    }
+
+    .tts-settings select {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+
+    .chat-input {
+        position: relative;
+        padding: 10px;
+        flex-wrap: wrap;
+    }
+
+    .voice-indicator {
+        top: -30px;
+        left: 10px;
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+
+    .voice-btn, .stop-btn {
+        padding: 10px 12px;
+        font-size: 14px;
+        min-width: 45px;
+    }
+
+    .chat-input input {
+        font-size: 14px;
+        padding: 10px 12px;
+    }
+
+    .chat-input button {
+        font-size: 14px;
+        padding: 10px 15px;
+    }
 }
 
 .chat-input button:focus,
@@ -1383,5 +1441,213 @@ body {
     to {
         transform: translateY(0);
         opacity: 1;
+    }
+}
+
+/* Voice Controls Styling */
+.voice-settings {
+    margin-bottom: 15px;
+    padding: 12px;
+    background: var(--dracula-background);
+    border: 1px solid var(--dracula-comment);
+    border-radius: 6px;
+}
+
+.voice-settings h4 {
+    margin: 0 0 10px 0;
+    color: var(--dracula-green);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.voice-controls {
+    margin-bottom: 10px;
+}
+
+.voice-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--dracula-foreground);
+    cursor: pointer;
+}
+
+.voice-option input[type="checkbox"] {
+    margin-right: 8px;
+    accent-color: var(--dracula-green);
+}
+
+.tts-settings {
+    border-top: 1px solid var(--dracula-comment);
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+.tts-settings label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: var(--dracula-foreground);
+    font-weight: 500;
+}
+
+.tts-settings select {
+    width: 100%;
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    background: var(--dracula-current-line);
+    color: var(--dracula-foreground);
+    border: 1px solid var(--dracula-comment);
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.tts-settings select:focus {
+    border-color: var(--dracula-green);
+    outline: none;
+}
+
+.voice-controls-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.voice-controls-row label {
+    min-width: 50px;
+    margin-bottom: 0;
+    font-size: 12px;
+}
+
+.voice-controls-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--dracula-green);
+}
+
+.voice-controls-row span {
+    min-width: 30px;
+    font-size: 12px;
+    color: var(--dracula-comment);
+    text-align: right;
+}
+
+/* Voice input buttons */
+.voice-btn, .stop-btn {
+    padding: 12px 15px;
+    background: var(--dracula-green);
+    color: var(--dracula-background);
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    min-width: 50px;
+}
+
+.voice-btn:hover {
+    background: var(--dracula-cyan);
+    transform: translateY(-1px);
+}
+
+.voice-btn.recording {
+    background: var(--dracula-red);
+    animation: pulse 1.5s infinite;
+}
+
+.stop-btn {
+    background: var(--dracula-red);
+}
+
+.stop-btn:hover {
+    background: var(--dracula-orange);
+    transform: translateY(-1px);
+}
+
+.voice-btn:disabled, .stop-btn:disabled {
+    background: var(--dracula-comment);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Voice indicator */
+.voice-indicator {
+    position: absolute;
+    top: -35px;
+    left: 15px;
+    background: var(--dracula-red);
+    color: var(--dracula-background);
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: slideDown 0.3s ease;
+    z-index: 10;
+}
+
+.recording-animation {
+    width: 12px;
+    height: 12px;
+    background: var(--dracula-background);
+    border-radius: 50%;
+    animation: pulse 1s infinite;
+}
+
+/* Pulse animation for recording indicators */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Voice mode status */
+.voice-mode-active {
+    background: var(--dracula-green) !important;
+    color: var(--dracula-background) !important;
+}
+
+.voice-mode-inactive {
+    background: var(--dracula-comment) !important;
+    color: var(--dracula-foreground) !important;
+}
+
+/* TTS speaking indicator */
+.tts-speaking {
+    border-left: 4px solid var(--dracula-green) !important;
+    background: rgba(80, 250, 123, 0.1) !important;
+    animation: speakingPulse 2s infinite;
+}
+
+@keyframes speakingPulse {
+    0%, 100% {
+        border-left-color: var(--dracula-green);
+    }
+    50% {
+        border-left-color: var(--dracula-cyan);
     }
 } 
