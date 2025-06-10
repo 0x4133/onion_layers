@@ -1,269 +1,254 @@
-# Visual ALM - Autonomous Language Model
+# 🧅 Onion Layers - Visual ALM (Advanced Language Model) Tree Interface
 
-A robust, interactive web application for conversing with local Ollama models through branching conversation trees. Experience AI conversations in a visual, tree-based interface that allows you to explore different conversation paths and branch from any point in your dialogue history.
+A sophisticated web-based conversation tree interface for Ollama that visualizes your AI conversations as an interactive branching network. Create, explore, and manage complex conversation paths with advanced editing capabilities and ghost branch protection.
 
-## 🌟 Features
+## ✨ Features
 
-- **Visual Conversation Trees**: See your conversations as an interactive tree with branching paths
-- **Branch from Any Point**: Click on any node to start a new conversation thread from that point
-- **Local Ollama Integration**: Works with your local Ollama installation - no external API keys needed
-- **Persistent Memory**: Conversations are saved automatically and persist across sessions
-- **Responsive Design**: Works on desktop and mobile devices
-- **Real-time Status**: Check Ollama connection status in real-time
-- **Modern UI**: Beautiful, gradient-based interface with smooth animations
-- **Error Handling**: Comprehensive error handling with helpful user feedback
+### 🌳 **Interactive Conversation Trees**
+- **Visual Network**: See your entire conversation history as an interactive tree
+- **Branch Navigation**: Click any node to continue conversations from that point
+- **Real-time Updates**: Watch your conversation tree grow dynamically
+- **Smart Layout**: Automatic network positioning with smooth animations
+
+### ✏️ **Advanced Node Editing** *(NEW!)*
+- **Edit Any Node**: Modify user messages and AI responses at any point
+- **Ghost Branch Protection**: Preserve existing conversation paths when editing
+- **Edit History Tracking**: Full audit trail of all changes made
+- **Visual Indicators**: Edited nodes are clearly marked in the network
+- **Safe Operations**: Intelligent handling of child nodes during edits
+
+### 👻 **Ghost Branch Management** *(NEW!)*
+- **Automatic Protection**: Create ghost branches when editing nodes with children
+- **Branch Preservation**: Keep all conversation paths safe during modifications
+- **Ghost Restoration**: Restore ghost branches back to the main tree
+- **Ghost Cleanup**: Permanently delete unnecessary ghost branches
+- **Visual Management**: Dedicated interface for ghost branch operations
+
+### 💬 **Rich Conversation Features**
+- **Markdown Support**: Full markdown rendering for AI responses
+- **Multi-Model Support**: Switch between different Ollama models
+- **Context Preservation**: Maintains full conversation history for context
+- **Export/Import**: Save and restore entire conversation trees
+- **Real-time Status**: Live Ollama connection monitoring
+
+### 🎨 **Modern UI/UX**
+- **Dark Theme**: Beautiful gradient-based dark interface
+- **Responsive Design**: Works on all screen sizes
+- **Smooth Animations**: Polished interactions and transitions
+- **Keyboard Shortcuts**: Quick access to common actions
+- **Modal Dialogs**: Professional editing interfaces
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+- Python 3.8+
+- [Ollama](https://ollama.ai/) installed and running
+- At least one Ollama model installed (e.g., `llama2`, `mistral`, `codellama`)
 
-1. **Python 3.8+** installed on your system
-2. **Ollama** running locally on your machine
-
-### Step 1: Install Ollama
-
-First, install Ollama if you haven't already:
-
-```bash
-# On macOS (using Homebrew)
-brew install ollama
-
-# On Linux
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# On Windows
-# Download from https://ollama.ai/download
-```
-
-### Step 2: Start Ollama and Download a Model
-
-```bash
-# Start Ollama service
-ollama serve
-
-# In another terminal, download a model (e.g., Gemma 2B)
-ollama pull gemma2:2b
-
-# Or download the default model used by ALM
-ollama pull gemma3:4b
-```
-
-### Step 3: Install ALM
-
+### Installation
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/yourusername/onion_layers.git
 cd onion_layers
 
-# Create a virtual environment
+# Create virtual environment
 python -m venv .venv
-
-# Activate virtual environment
-# On Linux/macOS:
-source .venv/bin/activate
-# On Windows:
-.venv\Scripts\activate
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-```
 
-### Step 4: Run the Application
+# Ensure Ollama is running
+ollama serve
 
-```bash
 # Start the web interface
 python app.py
-
-# Or start the CLI interface
-python main.py
 ```
 
-### Step 5: Open in Browser
+### First Steps
+1. Open http://localhost:5000 in your browser
+2. Verify Ollama connection (green status indicator)
+3. Select your preferred model from the dropdown
+4. Start your first conversation!
 
-Open your browser and navigate to: `http://localhost:5001`
+## 📖 User Guide
 
-## 🎯 Usage
+### Basic Conversation Flow
+1. **Start Fresh**: Type your message and press Enter or click Send
+2. **Branch Out**: Click any existing node to continue from that point
+3. **Explore Paths**: Create multiple conversation branches to explore different topics
+4. **Navigate**: Use the network view to visualize your conversation structure
 
-### Web Interface
+### Node Editing Workflow
+1. **Select Node**: Click any node in the conversation tree
+2. **Edit Content**: Click the "✏️ Edit Node" button in the sidebar
+3. **Choose Protection**: Decide whether to create ghost branches for existing children
+4. **Make Changes**: Modify the user message or AI response
+5. **Save**: Apply changes and see the updated tree
 
-1. **Starting a Conversation**: Type your message in the input box at the bottom and press Enter or click Send
-2. **Visual Tree**: Your conversation appears as a tree with green nodes (your messages) and blue nodes (AI responses)
-3. **Branching**: Click on any node in the tree to start a new conversation thread from that point
-4. **Controls**: 
-   - **Reset Tree**: Clear all conversation history
-   - **Center View**: Center the tree view
-   - **Check Ollama**: Verify Ollama connection status
-5. **Status Messages**: Real-time feedback appears in the messages area at the bottom left
+### Ghost Branch Management
+1. **Automatic Creation**: Ghost branches are created when editing nodes with children
+2. **View Ghosts**: Click "👻 Manage Branches" to see all ghost branches
+3. **Restore Branches**: Bring ghost branches back to the main tree
+4. **Clean Up**: Delete unnecessary ghost branches to keep things organized
 
-### CLI Interface
+### Advanced Features
+- **Keyboard Shortcuts**:
+  - `Ctrl/Cmd + Enter`: Send message
+  - `Escape`: Close modals or clear input
+- **Export/Import**: Save entire conversation trees with ghost branches
+- **Model Switching**: Change AI models during conversations
+- **Reset Tree**: Start completely fresh when needed
 
-```bash
-python main.py
-```
-
-Type your messages and get responses. Type 'exit' to quit.
-
-## ⚙️ Configuration
+## 🔧 Configuration
 
 ### Environment Variables
-
-You can configure the application using environment variables:
-
 ```bash
-# Web server configuration
-export ALM_HOST=0.0.0.0          # Default: 0.0.0.0
-export ALM_PORT=5001             # Default: 5001
-export ALM_DEBUG=true            # Default: false
+# Ollama Configuration
+OLLAMA_URL=http://localhost:11434    # Default Ollama URL
+OLLAMA_MODEL=llama2                  # Default model
 
-# Run the app
-python app.py
+# Application Settings
+FLASK_DEBUG=True                     # Enable debug mode
+FLASK_HOST=0.0.0.0                  # Host interface
+FLASK_PORT=5000                     # Port number
 ```
 
-### Ollama Model Configuration
-
-Edit `main.py` to change the Ollama model:
-
-```python
-OLLAMA_MODEL = "gemma3:4b"  # Change to your preferred model
-```
-
-Available models (run `ollama list` to see installed models):
-- `gemma2:2b` - Smaller, faster model
-- `gemma3:4b` - Default model (good balance)
-- `llama2` - Meta's LLaMA model
-- `codellama` - Code-focused model
-- `mistral` - Fast and capable model
-
-## 🏗️ Project Structure
-
+### File Structure
 ```
 onion_layers/
-├── app.py                 # Flask web application
-├── main.py               # CLI interface and core Ollama integration
-├── templates/
-│   └── index.html        # Web interface template
+├── app.py                          # Main Flask application
+├── main.py                         # Core ALM functionality
+├── templates/index.html            # Web interface template
 ├── static/
-│   └── css/
-│       └── style.css     # Application styles
-├── requirements.txt      # Python dependencies
-├── setup.py             # Package setup
-├── test_alm.py          # Unit tests
-├── test_web_app.py      # Web app tests
-├── test_integration_ui.py # UI integration tests
-└── README.md            # This file
+│   ├── css/style.css              # Application styles
+│   └── js/app.js                  # Frontend JavaScript
+├── alm_tree_memory.json           # Conversation tree storage
+├── alm_ghost_branches.json        # Ghost branch storage
+└── requirements.txt               # Python dependencies
 ```
 
-## 🧪 Testing
+## 🎯 Use Cases
 
-Run the test suite:
+### 📚 **Learning & Research**
+- Explore different explanations of complex topics
+- Branch conversations to ask follow-up questions
+- Compare AI responses across different models
+- Edit responses to explore alternative explanations
 
-```bash
-# Run all tests
-pytest
+### 💻 **Development & Debugging**
+- Test different approaches to coding problems
+- Edit prompts to improve AI responses
+- Branch conversations for different programming languages
+- Preserve working solutions while exploring alternatives
 
-# Run with coverage
-pytest --cov=. --cov-report=html
+### ✍️ **Creative Writing**
+- Develop story branches and character arcs
+- Edit dialogue to improve flow
+- Explore different plot directions
+- Preserve original ideas while experimenting
 
-# Run specific test files
-pytest test_alm.py
-pytest test_web_app.py
+### 🔍 **Prompt Engineering**
+- Test and refine prompts systematically
+- Edit and compare different prompt variations
+- Build libraries of effective prompts
+- Track prompt evolution and effectiveness
 
-# Run UI integration tests (requires Selenium)
-pytest test_integration_ui.py
+## 🛠️ Technical Details
+
+### Architecture
+- **Backend**: Flask web framework with RESTful API
+- **Frontend**: Vanilla JavaScript with vis.js for network visualization
+- **Storage**: JSON-based file system for persistence
+- **Communication**: Real-time AJAX for Ollama integration
+
+### API Endpoints
+```
+GET  /api/status                    # Ollama status and models
+GET  /api/tree                      # Get conversation tree
+POST /api/chat                      # Send message
+POST /api/tree/reset                # Reset conversation tree
+GET  /api/tree/export               # Export tree data
+
+# Editing Endpoints
+POST /api/node/<id>/edit            # Edit node content
+GET  /api/ghost-branches            # Get all ghost branches
+POST /api/ghost-branches/<id>/restore  # Restore ghost branch
+DELETE /api/ghost-branches/<id>     # Delete ghost branch
 ```
 
-### UI Testing
-
-For UI tests, you'll need Chrome and ChromeDriver:
-
-```bash
-# Install ChromeDriver (macOS)
-brew install chromedriver
-
-# Install Selenium
-pip install selenium
-
-# Run UI tests
-pytest test_integration_ui.py
+### Data Structure
+```json
+{
+  "nodes": {
+    "node_id": {
+      "id": "uuid",
+      "user_input": "User message",
+      "ai_response": "AI response",
+      "model_used": "llama2",
+      "timestamp": "ISO datetime",
+      "children": ["child_node_ids"],
+      "edit_history": [
+        {
+          "timestamp": "ISO datetime",
+          "ghost_created": "ghost_id"
+        }
+      ]
+    }
+  },
+  "root_id": "first_node_id"
+}
 ```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Ollama](https://ollama.ai/) for the excellent local LLM platform
+- [vis.js](https://visjs.org/) for the powerful network visualization
+- [Flask](https://flask.palletsprojects.com/) for the web framework
+- The open-source community for inspiration and tools
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Ollama Not Connected**
-   - Ensure Ollama is running: `ollama serve`
-   - Check if models are installed: `ollama list`
-   - Verify Ollama is accessible: `curl http://localhost:11434/api/tags`
+**Ollama Connection Failed**
+- Ensure Ollama is running: `ollama serve`
+- Check if models are installed: `ollama list`
+- Verify URL in configuration
 
-2. **Port Already in Use**
-   - Change the port: `ALM_PORT=5002 python app.py`
-   - Or kill the process using the port: `lsof -ti:5001 | xargs kill`
+**Ghost Branches Not Showing**
+- Check browser console for JavaScript errors
+- Ensure ghost branch file has correct permissions
+- Restart the application
 
-3. **Memory/Tree Issues**
-   - Reset the tree using the "Reset Tree" button
-   - Or delete the memory files: `rm alm_*.json`
+**Network Not Displaying**
+- Clear browser cache and cookies
+- Check if vis.js library is loading correctly
+- Verify no JavaScript errors in console
 
-4. **Dependencies Issues**
-   - Update pip: `pip install --upgrade pip`
-   - Reinstall requirements: `pip install -r requirements.txt --force-reinstall`
+**Edit Operations Failing**
+- Ensure you have write permissions to the data directory
+- Check that the node ID exists in the tree
+- Verify no other processes are accessing the files
 
-### Debug Mode
-
-Enable debug mode for more detailed error messages:
-
-```bash
-ALM_DEBUG=true python app.py
-```
-
-### Logs
-
-Check the log files for detailed error information:
-- `alm_web.log` - Web application logs
-- `alm.log` - CLI application logs
-
-## 🔌 API Endpoints
-
-The web application provides a REST API:
-
-- `GET /` - Main web interface
-- `GET /api/status` - System and Ollama status
-- `POST /api/chat` - Send a chat message
-- `GET /api/tree` - Get conversation tree
-- `POST /api/tree/reset` - Reset conversation tree
-- `GET /api/node/<id>` - Get specific node details
-- `GET /api/health` - Health check
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and add tests
-4. Run the test suite: `pytest`
-5. Commit your changes: `git commit -am 'Add feature'`
-6. Push to the branch: `git push origin feature-name`
-7. Submit a pull request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- [Ollama](https://ollama.ai/) for providing the local LLM infrastructure
-- [Vis.js](https://visjs.org/) for the interactive network visualization
-- [Flask](https://flask.palletsprojects.com/) for the web framework
-
-## 🔮 Future Features
-
-- [ ] Export conversation trees as images or PDFs
-- [ ] Import/export conversation trees as JSON
-- [ ] Search functionality within conversations
-- [ ] Custom node styling and themes
-- [ ] Multiple model support in same session
-- [ ] Conversation templates and presets
-- [ ] Integration with other LLM providers
+### Getting Help
+- Open an issue on GitHub with detailed error information
+- Include browser console logs and Python traceback
+- Describe steps to reproduce the problem
+- Mention your OS, Python version, and Ollama version
 
 ---
 
-**Enjoy exploring AI conversations with Visual ALM!** 🚀✨ 
+*Built with ❤️ for the AI conversation community* 

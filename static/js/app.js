@@ -5,10 +5,12 @@
 // Global variables
 let network;
 let selectedNodeId = null;
-let conversationTree = { nodes: {}, root_id: null };
+let conversationTree = { nodes: {}, root_id: null, ghost_branches: {} };
 let ollamaConnected = false;
 let availableModels = [];
 let selectedModel = null;
+let isEditMode = false;
+let ghostBranches = {};
 
 // Configuration
 const CONFIG = {
@@ -188,6 +190,12 @@ async function loadTree() {
     try {
         const response = await fetch('/api/tree');
         conversationTree = await response.json();
+        
+        // Ensure ghost_branches exists
+        if (!conversationTree.ghost_branches) {
+            conversationTree.ghost_branches = {};
+        }
+        
         updateNetworkView();
     } catch (error) {
         console.error('Error loading tree:', error);
@@ -197,166 +205,141 @@ async function loadTree() {
 
 // Update the network visualization
 function updateNetworkView() {
+    if (!network || !conversationTree.nodes) {
+        return;
+    }
+    
     const nodes = [];
     const edges = [];
     
-    for (const [nodeId, node] of Object.entries(conversationTree.nodes)) {
-        // Create node for user message
+    // Convert tree structure to vis.js format
+    Object.values(conversationTree.nodes).forEach(node => {
+        let label = `🤖 ${node.id.substring(0, 8)}`;
+        let title = `Node: ${node.id}\n`;
+        let color = '#74b9ff'; // Default blue
+        let borderWidth = 2;
+        let shapeProperties = {};
+        
+        // Check if node has been edited
+        const isEdited = node.edit_history && node.edit_history.length > 0;
+        
         if (node.user_input) {
-            const isSelected = selectedNodeId === nodeId;
-            nodes.push({
-                id: nodeId + '_user',
-                label: truncateText(node.user_input, CONFIG.NODE_LABEL_MAX_LENGTH),
-                color: {
-                    background: isSelected ? '#c3e6cb' : '#d4edda',
-                    border: isSelected ? '#1e7e34' : '#28a745',
-                    highlight: {
-                        background: '#c3e6cb',
-                        border: '#1e7e34'
-                    }
-                },
-                title: `You: ${escapeHtml(node.user_input)}\n\nClick to branch from this point`,
-                font: { 
-                    multi: true,
-                    bold: isSelected
-                },
-                borderWidth: isSelected ? 4 : 2,
-                shadow: isSelected ? { enabled: true, size: 10, x: 0, y: 0 } : true,
-                nodeData: { type: 'user', nodeId: nodeId, content: node.user_input }
-            });
+            label = `👤 ${truncateText(node.user_input, CONFIG.NODE_LABEL_MAX_LENGTH)}`;
+            title += `You: ${node.user_input}\n`;
         }
         
-        // Create node for AI response
         if (node.ai_response) {
-            const isSelected = selectedNodeId === nodeId;
-            // For tooltip, show plain text but indicate markdown support
-            const tooltipText = `ALM: ${escapeHtml(node.ai_response.substring(0, 200))}${node.ai_response.length > 200 ? '...' : ''}\n\n✨ Supports markdown formatting - click to view full formatted response`;
+            title += `AI: ${truncateText(node.ai_response, 100)}\n`;
+        }
+        
+        title += `Time: ${new Date(node.timestamp).toLocaleString()}\n`;
+        title += `Model: ${node.model_used || 'Unknown'}\n`;
+        
+        // Style edited nodes differently
+        if (isEdited) {
+            color = '#ffeaa7'; // Yellow for edited nodes
+            borderWidth = 3;
+            title += `✏️ EDITED NODE (${node.edit_history.length} edit${node.edit_history.length === 1 ? '' : 's'})\n`;
             
-            nodes.push({
-                id: nodeId + '_ai',
-                label: truncateText(node.ai_response, CONFIG.NODE_LABEL_MAX_LENGTH),
-                color: {
-                    background: isSelected ? '#b3d7ff' : '#cce5ff',
-                    border: isSelected ? '#0056b3' : '#007bff',
-                    highlight: {
-                        background: '#b3d7ff',
-                        border: '#0056b3'
+            // Add edit history to tooltip
+            node.edit_history.forEach((edit, index) => {
+                const editTime = new Date(edit.timestamp).toLocaleString();
+                title += `Edit ${index + 1}: ${editTime}\n`;
+                if (edit.ghost_created) {
+                    title += `Ghost created: ${edit.ghost_created}\n`;
+                }
+            });
+        }
+        
+        // Add special styling for root node
+        if (node.id === conversationTree.root_id) {
+            color = isEdited ? '#fdcb6e' : '#00b894'; // Green or orange if edited
+            title += '🌟 ROOT NODE\n';
+        }
+        
+        // Check if node has children
+        const hasChildren = node.children && node.children.length > 0;
+        if (hasChildren) {
+            title += `📊 ${node.children.length} child branch${node.children.length === 1 ? '' : 'es'}\n`;
+        }
+        
+        title += '\n💡 Click to continue conversation from this point!';
+        
+        // Add markdown support note for AI responses
+        if (node.ai_response) {
+            title += '\n📝 AI responses support markdown formatting - click to see formatted version!';
+        }
+        
+        nodes.push({
+            id: node.id,
+            label: label,
+            title: title,
+            color: {
+                background: color,
+                border: isEdited ? '#e17055' : '#2d3436',
+                highlight: {
+                    background: isEdited ? '#fdcb6e' : '#55a3ff',
+                    border: '#2d3436'
+                }
+            },
+            borderWidth: borderWidth,
+            chosen: {
+                node: function(values, id, selected, hovering) {
+                    if (selected) {
+                        values.borderWidth = 4;
+                        values.color = isEdited ? '#e17055' : '#6c5ce7';
                     }
-                },
-                title: tooltipText,
-                font: { 
-                    multi: true,
-                    bold: isSelected
-                },
-                borderWidth: isSelected ? 4 : 2,
-                shadow: isSelected ? { enabled: true, size: 10, x: 0, y: 0 } : true,
-                nodeData: { type: 'ai', nodeId: nodeId, content: node.ai_response }
-            });
-            
-            // Connect user message to AI response
-            if (node.user_input) {
+                }
+            },
+            font: {
+                color: '#2d3436',
+                size: 12,
+                face: 'Arial',
+                background: 'rgba(255,255,255,0.7)'
+            },
+            shapeProperties: shapeProperties
+        });
+        
+        // Add edges for children
+        if (node.children) {
+            node.children.forEach(childId => {
                 edges.push({
-                    from: nodeId + '_user',
-                    to: nodeId + '_ai',
-                    color: { color: selectedNodeId === nodeId ? '#1e7e34' : '#28a745' },
-                    width: selectedNodeId === nodeId ? 4 : 2
+                    from: node.id,
+                    to: childId,
+                    arrows: 'to',
+                    color: {
+                        color: isEdited ? '#e17055' : '#636e72',
+                        highlight: '#6c5ce7'
+                    },
+                    width: 2,
+                    smooth: {
+                        type: 'curvedCW',
+                        roundness: 0.2
+                    }
                 });
-            }
-        }
-        
-        // Connect to parent
-        if (node.parent_id && conversationTree.nodes[node.parent_id]) {
-            const isOnSelectedPath = isNodeOnPath(nodeId, selectedNodeId);
-            edges.push({
-                from: node.parent_id + '_ai',
-                to: nodeId + '_user',
-                color: { color: isOnSelectedPath ? '#0056b3' : '#007bff' },
-                width: isOnSelectedPath ? 4 : 2
             });
         }
-    }
+    });
     
-    // Add branch point indicator if a node is selected
-    if (selectedNodeId && conversationTree.nodes[selectedNodeId]) {
-        const branchNode = conversationTree.nodes[selectedNodeId];
-        
-        // Add a visual branch point indicator
-        nodes.push({
-            id: 'branch_point_indicator',
-            label: '📍 BRANCH\nPOINT',
-            color: {
-                background: '#ffd700',
-                border: '#ff8c00'
-            },
-            shape: 'diamond',
-            size: 30,
-            font: {
-                size: 10,
-                color: '#333',
-                face: 'Segoe UI',
-                multi: true
-            },
-            borderWidth: 3,
-            shadow: {
-                enabled: true,
-                size: 15,
-                x: 0,
-                y: 0,
-                color: 'rgba(255, 140, 0, 0.5)'
-            },
-            title: 'New messages will branch from here'
-        });
-        
-        // Connect branch point to selected node
-        const targetNodeId = branchNode.ai_response ? selectedNodeId + '_ai' : selectedNodeId + '_user';
-        edges.push({
-            from: targetNodeId,
-            to: 'branch_point_indicator',
-            color: { color: '#ff8c00' },
-            width: 3,
-            dashes: [10, 5],
-            arrows: 'to',
-            title: 'Branch point connection'
-        });
-        
-        // Add potential new message preview
-        nodes.push({
-            id: 'new_message_preview',
-            label: '💬 Your next\nmessage will\nappear here',
-            color: {
-                background: 'rgba(212, 237, 218, 0.7)',
-                border: 'rgba(40, 167, 69, 0.7)'
-            },
-            shape: 'box',
-            font: {
-                size: 9,
-                color: '#666',
-                face: 'Segoe UI',
-                multi: true
-            },
-            borderWidth: 2,
-            borderWidthSelected: 2,
-            opacity: 0.8,
-            title: 'Type a message and send to create this branch'
-        });
-        
-        // Connect branch point to new message preview
-        edges.push({
-            from: 'branch_point_indicator',
-            to: 'new_message_preview',
-            color: { color: 'rgba(255, 140, 0, 0.7)' },
-            width: 2,
-            dashes: [5, 5],
-            arrows: 'to',
-            title: 'New conversation branch'
-        });
-    }
+    // Update network
+    const data = { nodes: nodes, edges: edges };
+    network.setData(data);
     
-    network.setData({ nodes: nodes, edges: edges });
+    // Update node count display
+    const nodeCount = nodes.length;
+    const editedCount = nodes.filter(n => n.borderWidth > 2).length;
+    console.log(`Network updated: ${nodeCount} nodes (${editedCount} edited)`);
     
-    // Auto-fit if there are nodes
+    // Fit network if it's not empty
     if (nodes.length > 0) {
-        setTimeout(() => network.fit(), 100);
+        setTimeout(() => {
+            network.fit({
+                animation: {
+                    duration: 1000,
+                    easingFunction: 'easeInOutQuad'
+                }
+            });
+        }, 100);
     }
 }
 
@@ -481,12 +464,15 @@ function updateSelectedNodeInfo() {
     
     const currentNode = conversationTree.nodes[selectedNodeId];
     const hasChildren = currentNode.children && currentNode.children.length > 0;
+    const editHistoryHtml = buildEditHistoryHtml(currentNode);
+    const isEdited = currentNode.edit_history && currentNode.edit_history.length > 0;
     
     infoDiv.innerHTML = `
         <div class="node-info selected-path">
-            <h3>🎯 Selected Branch Point</h3>
+            <h3>🎯 Selected Branch Point ${isEdited ? '✏️' : ''}</h3>
             <div class="node-details">
                 <div class="timestamp">📅 Selected: ${timestamp}</div>
+                ${isEdited ? `<div class="edit-indicator">✏️ This node has been edited</div>` : ''}
                 <div class="branch-info">
                     ${hasChildren ? 
                         `<div class="existing-branches">⚡ This point has ${currentNode.children.length} existing branch${currentNode.children.length === 1 ? '' : 'es'}</div>` :
@@ -495,14 +481,27 @@ function updateSelectedNodeInfo() {
                 </div>
             </div>
             
+            <div class="edit-controls">
+                <button onclick="startEditMode('${selectedNodeId}')" class="edit-btn" title="Edit this conversation point">
+                    ✏️ Edit Node
+                </button>
+                ${hasChildren ? `
+                    <button onclick="showGhostBranchDialog('${selectedNodeId}')" class="ghost-btn" title="Manage ghost branches">
+                        👻 Manage Branches
+                    </button>
+                ` : ''}
+            </div>
+            
             <div class="instruction-panel">
                 <h4>🚀 What happens next?</h4>
                 <p>• New messages will continue from this conversation point</p>
                 <p>• The AI will have access to all previous context shown below</p>
                 <p>• This creates a new branch in your conversation tree</p>
                 <p>• <strong>💡 AI responses now support markdown formatting!</strong></p>
+                <p>• <strong>✏️ You can edit any node to explore different conversation paths!</strong></p>
             </div>
             
+            ${editHistoryHtml}
             ${pathHtml}
             
             <div class="branch-actions">
@@ -515,6 +514,294 @@ function updateSelectedNodeInfo() {
             </div>
         </div>
     `;
+}
+
+// Build edit history HTML
+function buildEditHistoryHtml(node) {
+    if (!node.edit_history || node.edit_history.length === 0) {
+        return '';
+    }
+    
+    let html = '<div class="edit-history">';
+    html += '<h4>📝 Edit History</h4>';
+    
+    node.edit_history.forEach((edit, index) => {
+        const editTime = new Date(edit.timestamp).toLocaleString();
+        html += `<div class="edit-entry">
+            <div class="edit-timestamp">Edit ${index + 1}: ${editTime}</div>
+            ${edit.ghost_created ? `<div class="ghost-info">👻 Created ghost branch: ${edit.ghost_created}</div>` : ''}
+        </div>`;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+// Start edit mode for a node
+function startEditMode(nodeId) {
+    if (!nodeId || !conversationTree.nodes[nodeId]) {
+        showMessage('Node not found', 'error');
+        return;
+    }
+    
+    const node = conversationTree.nodes[nodeId];
+    const hasChildren = node.children && node.children.length > 0;
+    
+    // Show edit modal
+    showEditModal(nodeId, node, hasChildren);
+}
+
+// Show edit modal
+function showEditModal(nodeId, node, hasChildren) {
+    const modal = document.createElement('div');
+    modal.className = 'edit-modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeEditModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Conversation Node</h3>
+                <button onclick="closeEditModal()" class="close-btn">✖️</button>
+            </div>
+            
+            <div class="modal-body">
+                ${hasChildren ? `
+                    <div class="warning-section">
+                        <h4>⚠️ Warning: This node has children</h4>
+                        <p>Editing this node will affect ${node.children.length} child branch${node.children.length === 1 ? '' : 'es'}.</p>
+                        <label class="ghost-option">
+                            <input type="checkbox" id="createGhost" checked>
+                            Create ghost branch to preserve existing conversations
+                        </label>
+                    </div>
+                ` : ''}
+                
+                <div class="edit-fields">
+                    <div class="field-group">
+                        <label for="editUserInput">👤 Your Message:</label>
+                        <textarea id="editUserInput" rows="3" placeholder="Edit your message...">${escapeHtml(node.user_input || '')}</textarea>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label for="editAiResponse">🤖 AI Response:</label>
+                        <textarea id="editAiResponse" rows="5" placeholder="Edit AI response...">${escapeHtml(node.ai_response || '')}</textarea>
+                        <small>Supports markdown formatting</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button onclick="closeEditModal()" class="cancel-btn">Cancel</button>
+                <button onclick="saveNodeEdit('${nodeId}')" class="save-btn">💾 Save Changes</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focus on first textarea
+    setTimeout(() => {
+        const firstTextarea = modal.querySelector('textarea');
+        if (firstTextarea) firstTextarea.focus();
+    }, 100);
+}
+
+// Close edit modal
+function closeEditModal() {
+    const modal = document.querySelector('.edit-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Save node edit
+async function saveNodeEdit(nodeId) {
+    const userInput = document.getElementById('editUserInput')?.value.trim();
+    const aiResponse = document.getElementById('editAiResponse')?.value.trim();
+    const createGhost = document.getElementById('createGhost')?.checked || false;
+    
+    if (!userInput && !aiResponse) {
+        showMessage('Please provide at least one field to edit', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/node/${nodeId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_input: userInput,
+                ai_response: aiResponse,
+                create_ghost: createGhost
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            closeEditModal();
+            await loadTree();
+            updateSelectedNodeInfo();
+            
+            let message = 'Node edited successfully! ';
+            if (data.ghost_branch_id) {
+                message += `Ghost branch created: ${data.ghost_branch_id}`;
+            } else if (data.children_removed) {
+                message += 'Child branches were removed.';
+            }
+            
+            showMessage(message, 'success');
+            
+            // Load ghost branches
+            loadGhostBranches();
+        } else {
+            showMessage(data.error || 'Error editing node', 'error');
+        }
+    } catch (error) {
+        console.error('Error editing node:', error);
+        showMessage('Error connecting to server', 'error');
+    }
+}
+
+// Show ghost branch management dialog
+function showGhostBranchDialog(nodeId) {
+    loadGhostBranches().then(() => {
+        const modal = document.createElement('div');
+        modal.className = 'ghost-modal';
+        
+        // Filter ghost branches for this node
+        const nodeGhosts = Object.values(ghostBranches).filter(
+            ghost => ghost.original_node_id === nodeId
+        );
+        
+        let ghostListHtml = '';
+        if (nodeGhosts.length === 0) {
+            ghostListHtml = '<p>No ghost branches found for this node.</p>';
+        } else {
+            ghostListHtml = '<div class="ghost-list">';
+            nodeGhosts.forEach(ghost => {
+                const createdDate = new Date(ghost.created_at).toLocaleString();
+                ghostListHtml += `
+                    <div class="ghost-item">
+                        <div class="ghost-info">
+                            <h5>👻 ${ghost.id}</h5>
+                            <p><strong>Created:</strong> ${createdDate}</p>
+                            <p><strong>Reason:</strong> ${ghost.reason}</p>
+                            <p><strong>Nodes:</strong> ${ghost.node_count}</p>
+                            <p><strong>Content:</strong> ${ghost.root_content}</p>
+                        </div>
+                        <div class="ghost-actions">
+                            <button onclick="restoreGhostBranch('${ghost.id}')" class="restore-btn">
+                                🔄 Restore
+                            </button>
+                            <button onclick="deleteGhostBranch('${ghost.id}')" class="delete-ghost-btn">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            ghostListHtml += '</div>';
+        }
+        
+        modal.innerHTML = `
+            <div class="modal-overlay" onclick="closeGhostModal()"></div>
+            <div class="modal-content ghost-content">
+                <div class="modal-header">
+                    <h3>👻 Ghost Branch Management</h3>
+                    <button onclick="closeGhostModal()" class="close-btn">✖️</button>
+                </div>
+                
+                <div class="modal-body">
+                    <p>Ghost branches preserve conversation paths when nodes are edited.</p>
+                    ${ghostListHtml}
+                </div>
+                
+                <div class="modal-footer">
+                    <button onclick="closeGhostModal()" class="cancel-btn">Close</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    });
+}
+
+// Close ghost modal
+function closeGhostModal() {
+    const modal = document.querySelector('.ghost-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Load ghost branches
+async function loadGhostBranches() {
+    try {
+        const response = await fetch('/api/ghost-branches');
+        if (response.ok) {
+            ghostBranches = await response.json();
+        } else {
+            console.error('Error loading ghost branches');
+        }
+    } catch (error) {
+        console.error('Error loading ghost branches:', error);
+    }
+}
+
+// Restore ghost branch
+async function restoreGhostBranch(ghostId) {
+    if (!confirm('Are you sure you want to restore this ghost branch? This will add its nodes back to the main tree.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/ghost-branches/${ghostId}/restore`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showMessage('Ghost branch restored successfully!', 'success');
+            closeGhostModal();
+            await loadTree();
+            updateSelectedNodeInfo();
+            loadGhostBranches();
+        } else {
+            showMessage(data.error || 'Error restoring ghost branch', 'error');
+        }
+    } catch (error) {
+        console.error('Error restoring ghost branch:', error);
+        showMessage('Error connecting to server', 'error');
+    }
+}
+
+// Delete ghost branch
+async function deleteGhostBranch(ghostId) {
+    if (!confirm('Are you sure you want to permanently delete this ghost branch? This cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/ghost-branches/${ghostId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showMessage('Ghost branch deleted permanently', 'success');
+            closeGhostModal();
+            loadGhostBranches();
+        } else {
+            showMessage(data.error || 'Error deleting ghost branch', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting ghost branch:', error);
+        showMessage('Error connecting to server', 'error');
+    }
 }
 
 // Reset selected node info to initial state with improved instructions
@@ -690,45 +977,276 @@ function exportTree() {
     showMessage('Conversation tree exported!', 'success');
 }
 
-// Initialize everything when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Visual ALM starting up...');
+// Initialize resize functionality
+function initResize() {
+    const resizeHandle = document.getElementById('resizeHandle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
     
+    if (!resizeHandle || !sidebar || !mainContent) {
+        console.error('Required elements for resize functionality not found');
+        return;
+    }
+    
+    let isResizing = false;
+    let startX = 0;
+    let startY = 0;
+    let startWidth = 0;
+    let startHeight = 0;
+    let isMobile = window.innerWidth <= 768;
+    
+    // Check if we're in mobile mode
+    function updateMobileMode() {
+        isMobile = window.innerWidth <= 768;
+    }
+    
+    // Mouse/Touch down on resize handle
+    function startResize(clientX, clientY) {
+        isResizing = true;
+        startX = clientX;
+        startY = clientY;
+        
+        if (isMobile) {
+            startHeight = parseInt(window.getComputedStyle(sidebar).height, 10);
+            document.body.style.cursor = 'row-resize';
+        } else {
+            startWidth = parseInt(window.getComputedStyle(sidebar).width, 10);
+            document.body.style.cursor = 'col-resize';
+        }
+        
+        // Prevent text selection during resize
+        document.body.style.userSelect = 'none';
+        
+        // Add visual feedback
+        resizeHandle.style.background = '#556bd8';
+    }
+    
+    // Mouse down
+    resizeHandle.addEventListener('mousedown', (e) => {
+        updateMobileMode();
+        startResize(e.clientX, e.clientY);
+        e.preventDefault();
+    });
+    
+    // Touch start for mobile
+    resizeHandle.addEventListener('touchstart', (e) => {
+        updateMobileMode();
+        if (e.touches.length === 1) {
+            startResize(e.touches[0].clientX, e.touches[0].clientY);
+            e.preventDefault();
+        }
+    });
+    
+    // Handle resize movement
+    function handleResize(clientX, clientY) {
+        if (!isResizing) return;
+        
+        if (isMobile) {
+            // Mobile: vertical resize
+            const deltaY = clientY - startY;
+            const newHeight = startHeight + deltaY;
+            const minHeight = 250;
+            const maxHeight = window.innerHeight * 0.7; // 70% of viewport
+            
+            // Constrain height within bounds
+            const constrainedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+            
+            // Update sidebar height
+            sidebar.style.height = `${constrainedHeight}px`;
+            
+            // Update main content height
+            const handleHeight = 6;
+            const mainContentHeight = window.innerHeight - constrainedHeight - handleHeight;
+            mainContent.style.height = `${mainContentHeight}px`;
+            
+            // Store the current height for persistence
+            localStorage.setItem('alm_sidebar_height_mobile', constrainedHeight);
+            
+        } else {
+            // Desktop: horizontal resize
+            const deltaX = clientX - startX;
+            const newWidth = startWidth + deltaX;
+            const minWidth = 250;
+            const maxWidth = window.innerWidth * 0.6; // 60% of viewport
+            
+            // Constrain width within bounds
+            const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+            
+            // Update sidebar width
+            sidebar.style.width = `${constrainedWidth}px`;
+            
+            // Update main content width
+            const handleWidth = 6;
+            const mainContentWidth = window.innerWidth - constrainedWidth - handleWidth;
+            mainContent.style.width = `${mainContentWidth}px`;
+            
+            // Store the current width for persistence
+            localStorage.setItem('alm_sidebar_width', constrainedWidth);
+        }
+        
+        // Resize the network visualization if it exists
+        if (network) {
+            setTimeout(() => {
+                network.redraw();
+                network.fit();
+            }, 50);
+        }
+    }
+    
+    // Mouse move during resize
+    document.addEventListener('mousemove', (e) => {
+        handleResize(e.clientX, e.clientY);
+        if (isResizing) e.preventDefault();
+    });
+    
+    // Touch move for mobile
+    document.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1) {
+            handleResize(e.touches[0].clientX, e.touches[0].clientY);
+            if (isResizing) e.preventDefault();
+        }
+    });
+    
+    // End resize
+    function endResize() {
+        if (!isResizing) return;
+        
+        isResizing = false;
+        
+        // Restore normal cursor and selection
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+        resizeHandle.style.background = '';
+        
+        // Final network resize
+        if (network) {
+            setTimeout(() => {
+                network.redraw();
+                network.fit();
+            }, 100);
+        }
+    }
+    
+    // Mouse up - end resize
+    document.addEventListener('mouseup', endResize);
+    
+    // Touch end for mobile
+    document.addEventListener('touchend', endResize);
+    
+    // Load saved dimensions from localStorage
+    function loadSavedDimensions() {
+        updateMobileMode();
+        
+        if (isMobile) {
+            const savedHeight = localStorage.getItem('alm_sidebar_height_mobile');
+            if (savedHeight) {
+                const height = parseInt(savedHeight, 10);
+                const minHeight = 250;
+                const maxHeight = window.innerHeight * 0.7;
+                
+                if (height >= minHeight && height <= maxHeight) {
+                    sidebar.style.height = `${height}px`;
+                    const handleHeight = 6;
+                    const mainContentHeight = window.innerHeight - height - handleHeight;
+                    mainContent.style.height = `${mainContentHeight}px`;
+                }
+            }
+        } else {
+            const savedWidth = localStorage.getItem('alm_sidebar_width');
+            if (savedWidth) {
+                const width = parseInt(savedWidth, 10);
+                const minWidth = 250;
+                const maxWidth = window.innerWidth * 0.6;
+                
+                if (width >= minWidth && width <= maxWidth) {
+                    sidebar.style.width = `${width}px`;
+                    const handleWidth = 6;
+                    const mainContentWidth = window.innerWidth - width - handleWidth;
+                    mainContent.style.width = `${mainContentWidth}px`;
+                }
+            }
+        }
+    }
+    
+    // Load initial dimensions
+    loadSavedDimensions();
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        const wasMobile = isMobile;
+        updateMobileMode();
+        
+        // If switching between mobile and desktop, reset to defaults
+        if (wasMobile !== isMobile) {
+            sidebar.style.width = '';
+            sidebar.style.height = '';
+            mainContent.style.width = '';
+            mainContent.style.height = '';
+            
+            // Load appropriate saved dimensions after mode change
+            setTimeout(loadSavedDimensions, 100);
+        } else {
+            // Same mode, just adjust constraints
+            if (isMobile) {
+                const currentHeight = parseInt(window.getComputedStyle(sidebar).height, 10);
+                const maxHeight = window.innerHeight * 0.7;
+                
+                if (currentHeight > maxHeight) {
+                    sidebar.style.height = `${maxHeight}px`;
+                    const handleHeight = 6;
+                    const mainContentHeight = window.innerHeight - maxHeight - handleHeight;
+                    mainContent.style.height = `${mainContentHeight}px`;
+                } else {
+                    // Recalculate main content height
+                    const handleHeight = 6;
+                    const mainContentHeight = window.innerHeight - currentHeight - handleHeight;
+                    mainContent.style.height = `${mainContentHeight}px`;
+                }
+            } else {
+                const currentWidth = parseInt(window.getComputedStyle(sidebar).width, 10);
+                const maxWidth = window.innerWidth * 0.6;
+                
+                if (currentWidth > maxWidth) {
+                    sidebar.style.width = `${maxWidth}px`;
+                    const handleWidth = 6;
+                    const mainContentWidth = window.innerWidth - maxWidth - handleWidth;
+                    mainContent.style.width = `${mainContentWidth}px`;
+                } else {
+                    // Recalculate main content width
+                    const handleWidth = 6;
+                    const mainContentWidth = window.innerWidth - currentWidth - handleWidth;
+                    mainContent.style.width = `${mainContentWidth}px`;
+                }
+            }
+        }
+        
+        // Redraw network on window resize
+        if (network) {
+            setTimeout(() => {
+                network.redraw();
+                network.fit();
+            }, 100);
+        }
+    });
+}
+
+// Initialize application
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Visual ALM initialized');
+    
+    // Initialize all components
     initNetwork();
+    initResize(); // Add resize functionality
     loadTree();
-    loadAvailableModels(); // Load available models
-    checkOllamaStatus();
+    loadAvailableModels();
+    loadGhostBranches();
     startPeriodicStatusCheck();
     
-    // Focus on input field
+    // Focus on message input
     const messageInput = document.getElementById('messageInput');
     if (messageInput) {
         messageInput.focus();
     }
-    
-    // Show welcome message
-    setTimeout(() => {
-        showMessage('Welcome to Visual ALM! 🚀', 'success');
-    }, 500);
-    
-    // Add keyboard shortcuts
-    document.addEventListener('keydown', function(event) {
-        // Ctrl/Cmd + Enter to send message
-        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-            sendMessage();
-        }
-        
-        // Escape to clear input
-        if (event.key === 'Escape') {
-            const input = document.getElementById('messageInput');
-            if (input) {
-                input.value = '';
-                input.focus();
-            }
-        }
-    });
-    
-    console.log('Visual ALM initialized successfully!');
 });
 
 // Global error handler
@@ -757,6 +1275,13 @@ window.exportTree = exportTree;
 window.startFreshChat = startFreshChat;
 window.clearSelection = clearSelection;
 window.handleModelChange = handleModelChange;
+window.startEditMode = startEditMode;
+window.closeEditModal = closeEditModal;
+window.saveNodeEdit = saveNodeEdit;
+window.showGhostBranchDialog = showGhostBranchDialog;
+window.closeGhostModal = closeGhostModal;
+window.restoreGhostBranch = restoreGhostBranch;
+window.deleteGhostBranch = deleteGhostBranch;
 
 // Load available models from server
 async function loadAvailableModels() {

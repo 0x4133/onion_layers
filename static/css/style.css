@@ -26,12 +26,45 @@ body {
 
 .sidebar {
     width: 400px;
+    min-width: 250px;
+    max-width: 60vw;
     background: rgba(255, 255, 255, 0.95);
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     height: 100vh;
     position: relative;
     overflow: hidden;
     flex-shrink: 0;
+    transition: width 0.1s ease-out;
+}
+
+/* Resize handle */
+.resize-handle {
+    width: 6px;
+    background: #ddd;
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    z-index: 10;
+}
+
+.resize-handle:hover {
+    background: #667eea;
+}
+
+.resize-handle:active {
+    background: #556bd8;
+}
+
+.resize-handle::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+    cursor: col-resize;
 }
 
 .sidebar-header {
@@ -64,7 +97,9 @@ body {
     display: flex;
     flex-direction: column;
     padding: 20px;
-    min-width: 0;
+    min-width: 300px;
+    width: calc(100vw - 406px); /* Account for sidebar width + handle */
+    transition: width 0.1s ease-out;
 }
 
 .tree-container {
@@ -501,23 +536,43 @@ body {
     }
     
     .sidebar {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 100% !important;
+        height: 40vh;
+        max-height: 40vh;
+        min-height: 300px;
+        transition: height 0.1s ease-out;
+    }
+    
+    .resize-handle {
         width: 100%;
-        height: 400px;
-        position: relative;
+        height: 6px;
+        cursor: row-resize;
+        background: #ddd;
+    }
+    
+    .resize-handle::before {
+        left: 0;
+        right: 0;
+        top: -2px;
+        bottom: -2px;
+        cursor: row-resize;
+    }
+    
+    .main-content {
+        width: 100% !important;
+        height: calc(60vh - 6px) !important;
+        min-width: 100% !important;
+        transition: height 0.1s ease-out;
     }
     
     .sidebar-content {
-        height: 280px;
+        height: calc(40vh - 120px);
     }
     
     .sidebar-footer {
         height: 80px;
-        position: relative;
-    }
-    
-    .main-content {
-        flex: 1;
-        height: calc(100vh - 400px);
     }
     
     .branch-actions {
@@ -525,7 +580,8 @@ body {
     }
     
     .fresh-chat-btn, .clear-selection-btn {
-        min-width: auto;
+        width: 100%;
+        margin-bottom: 5px;
     }
 }
 
@@ -887,4 +943,429 @@ body {
     padding: 8px;
     margin: 8px 0;
     font-size: 0.9em;
+}
+
+/* Edit Controls */
+.edit-controls {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(108, 92, 231, 0.3);
+}
+
+.edit-btn, .ghost-btn {
+    background: linear-gradient(135deg, #6c5ce7, #74b9ff);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-right: 8px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.edit-btn:hover, .ghost-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.edit-btn:active, .ghost-btn:active {
+    transform: translateY(0);
+}
+
+/* Edit History */
+.edit-history {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #ffeaa7;
+}
+
+.edit-history h4 {
+    margin: 0 0 8px 0;
+    color: #ffeaa7;
+    font-size: 14px;
+}
+
+.edit-entry {
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+.edit-timestamp {
+    color: #ddd;
+    font-weight: 500;
+}
+
+.ghost-info {
+    color: #81ecec;
+    margin-top: 3px;
+}
+
+.edit-indicator {
+    color: #ffeaa7;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 5px 0;
+}
+
+/* Modal Dialogs */
+.edit-modal, .ghost-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    position: relative;
+    background: linear-gradient(135deg, #2d3436, #636e72);
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(108, 92, 231, 0.3);
+}
+
+.ghost-content {
+    max-width: 700px;
+}
+
+.modal-header {
+    padding: 20px 20px 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #74b9ff;
+    font-size: 18px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #ddd;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ff7675;
+}
+
+.modal-body {
+    padding: 0 20px 20px 20px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Warning Section */
+.warning-section {
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.warning-section h4 {
+    margin: 0 0 10px 0;
+    color: #ff7675;
+    font-size: 14px;
+}
+
+.warning-section p {
+    margin: 5px 0;
+    color: #ddd;
+    font-size: 13px;
+}
+
+.ghost-option {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    cursor: pointer;
+    color: #81ecec;
+    font-size: 13px;
+}
+
+.ghost-option input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.1);
+}
+
+/* Edit Fields */
+.edit-fields {
+    margin: 20px 0;
+}
+
+.field-group {
+    margin-bottom: 15px;
+}
+
+.field-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #74b9ff;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.field-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ddd;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 60px;
+    transition: all 0.2s ease;
+}
+
+.field-group textarea:focus {
+    outline: none;
+    border-color: #74b9ff;
+    box-shadow: 0 0 0 2px rgba(116, 185, 255, 0.2);
+}
+
+.field-group small {
+    color: #999;
+    font-size: 11px;
+    margin-top: 3px;
+    display: block;
+}
+
+/* Modal Buttons */
+.save-btn, .restore-btn {
+    background: linear-gradient(135deg, #00b894, #55a3ff);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.save-btn:hover, .restore-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.cancel-btn {
+    background: transparent;
+    color: #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.delete-ghost-btn {
+    background: linear-gradient(135deg, #e17055, #ff7675);
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.delete-ghost-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Ghost Branch Management */
+.ghost-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.ghost-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(129, 236, 236, 0.3);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.ghost-info {
+    flex: 1;
+    margin-right: 15px;
+}
+
+.ghost-info h5 {
+    margin: 0 0 5px 0;
+    color: #81ecec;
+    font-size: 14px;
+}
+
+.ghost-info p {
+    margin: 3px 0;
+    font-size: 12px;
+    color: #ddd;
+}
+
+.ghost-actions {
+    display: flex;
+    gap: 8px;
+    flex-direction: column;
+    min-width: 100px;
+}
+
+/* Responsive Modal Design */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+        max-height: 90vh;
+    }
+    
+    .modal-header {
+        padding: 15px 15px 0 15px;
+    }
+    
+    .modal-body {
+        padding: 0 15px 15px 15px;
+    }
+    
+    .modal-footer {
+        padding: 10px 15px;
+        flex-direction: column;
+    }
+    
+    .ghost-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .ghost-info {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .ghost-actions {
+        flex-direction: row;
+        min-width: auto;
+    }
+}
+
+/* Enhanced Node Styling for Edited Nodes */
+.edited-node {
+    border: 2px solid #ffeaa7 !important;
+    box-shadow: 0 0 10px rgba(255, 234, 167, 0.3) !important;
+}
+
+.ghost-node {
+    border: 2px dashed #81ecec !important;
+    opacity: 0.7;
+    box-shadow: 0 0 10px rgba(129, 236, 236, 0.3) !important;
+}
+
+/* Scrollbar Styling for Modals */
+.modal-content::-webkit-scrollbar,
+.ghost-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track,
+.ghost-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb,
+.ghost-list::-webkit-scrollbar-thumb {
+    background: rgba(116, 185, 255, 0.5);
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover,
+.ghost-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(116, 185, 255, 0.7);
+}
+
+/* Animation for Modal Appearance */
+.edit-modal, .ghost-modal {
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 } 
