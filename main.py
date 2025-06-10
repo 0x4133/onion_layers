@@ -110,6 +110,39 @@ def query_ollama(prompt: str, model: str = OLLAMA_MODEL) -> str:
         raise OllamaConnectionError(f"Invalid response from Ollama: {e}")
 
 
+def tokenize_prompt(prompt: str, model: str = OLLAMA_MODEL) -> List[Dict[str, Any]]:
+    """Return token IDs and probabilities for a prompt using Ollama."""
+    if not prompt.strip():
+        raise ValueError("Prompt cannot be empty")
+
+    if not model.strip():
+        model = OLLAMA_MODEL
+
+    # Build the tokenize endpoint from the configured generate URL
+    base_url = OLLAMA_URL.rsplit('/', 1)[0]
+    tokenize_url = f"{base_url}/tokenize"
+
+    try:
+        response = requests.post(
+            tokenize_url,
+            json={"model": model, "prompt": prompt},
+            timeout=REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data.get("tokens", [])
+    except requests.exceptions.ConnectionError:
+        raise OllamaConnectionError("Could not connect to Ollama server. Is it running?")
+    except requests.exceptions.Timeout:
+        raise OllamaConnectionError(
+            f"Request to Ollama timed out after {REQUEST_TIMEOUT} seconds"
+        )
+    except requests.exceptions.RequestException as e:
+        raise OllamaConnectionError(f"Request to Ollama failed: {e}")
+    except (json.JSONDecodeError, ValueError, KeyError) as e:
+        raise OllamaConnectionError(f"Invalid response from Ollama: {e}")
+
+
 def build_prompt(memory: Dict[str, Any], user_input: str) -> str:
     """Generate prompt from current state"""
     if not user_input.strip():

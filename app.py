@@ -12,8 +12,14 @@ import copy
 
 # Import our existing ALM functionality
 from main import (
-    query_ollama, ALMError, OllamaConnectionError, MemoryError,
-    OLLAMA_MODEL, OLLAMA_URL, REQUEST_TIMEOUT
+    query_ollama,
+    tokenize_prompt,
+    ALMError,
+    OllamaConnectionError,
+    MemoryError,
+    OLLAMA_MODEL,
+    OLLAMA_URL,
+    REQUEST_TIMEOUT,
 )
 
 app = Flask(__name__)
@@ -528,6 +534,27 @@ def status():
             "ollama_connected": False,
             "error": str(e)
         }), 500
+
+
+@app.route('/api/tokenize', methods=['POST'])
+def tokenize():
+    """Return token IDs and probabilities for a prompt."""
+    try:
+        data = request.get_json()
+        if not data or not data.get('prompt'):
+            return jsonify({"error": "Prompt is required"}), 400
+
+        prompt = data['prompt']
+        model = data.get('model', OLLAMA_MODEL)
+
+        tokens = tokenize_prompt(prompt, model=model)
+        return jsonify({"tokens": tokens})
+    except OllamaConnectionError as e:
+        logger.error(f"Ollama connection error during tokenization: {e}")
+        return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        logger.error(f"Error in tokenize endpoint: {e}")
+        return jsonify({"error": "Failed to tokenize prompt"}), 500
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
