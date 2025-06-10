@@ -525,6 +525,10 @@ function updateSelectedNodeInfo() {
             
             ${editHistoryHtml}
             ${pathHtml}
+            <div id="tokenBreakdown" class="token-breakdown">
+                <h4>🔤 Token Breakdown</h4>
+                <p>Loading tokens...</p>
+            </div>
             
             <div class="branch-actions">
                 <button onclick="startFreshChat()" class="fresh-chat-btn" title="Start completely new conversation">
@@ -536,6 +540,7 @@ function updateSelectedNodeInfo() {
             </div>
         </div>
     `;
+    loadTokenBreakdown(currentNode);
 }
 
 // Build edit history HTML
@@ -556,6 +561,57 @@ function buildEditHistoryHtml(node) {
     });
     
     html += '</div>';
+    return html;
+}
+
+// Fetch tokenization data for a node and render the breakdown
+async function loadTokenBreakdown(node) {
+    const tokenDiv = document.getElementById('tokenBreakdown');
+    if (!tokenDiv) return;
+
+    const model = node.model_used || selectedModel || '';
+
+    try {
+        const [promptTokens, responseTokens] = await Promise.all([
+            node.user_input ? fetchTokenize(node.user_input, model) : Promise.resolve([]),
+            node.ai_response ? fetchTokenize(node.ai_response, model) : Promise.resolve([]),
+        ]);
+
+        let html = '';
+        if (promptTokens.length > 0) {
+            html += '<h5>Prompt</h5>' + renderTokenTable(promptTokens);
+        }
+        if (responseTokens.length > 0) {
+            html += '<h5>Response</h5>' + renderTokenTable(responseTokens);
+        }
+
+        tokenDiv.innerHTML = html || '<p>No token data.</p>';
+    } catch (err) {
+        console.error('Error loading tokens', err);
+        tokenDiv.innerHTML = '<p>Error loading tokens.</p>';
+    }
+}
+
+// Helper to call the tokenize API
+async function fetchTokenize(text, model) {
+    const resp = await fetch('/api/tokenize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: text, model })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Tokenize failed');
+    return data.tokens || [];
+}
+
+// Render token table
+function renderTokenTable(tokens) {
+    let html = '<table class="token-table"><thead><tr><th>Token</th><th>ID</th><th>Prob</th></tr></thead><tbody>';
+    tokens.forEach(t => {
+        const prob = t.prob !== undefined ? t.prob.toFixed(3) : '';
+        html += `<tr><td>${escapeHtml(t.token)}</td><td>${t.id}</td><td>${prob}</td></tr>`;
+    });
+    html += '</tbody></table>';
     return html;
 }
 
