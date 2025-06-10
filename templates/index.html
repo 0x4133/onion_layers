@@ -13,6 +13,15 @@
             <div class="sidebar-header">
                 <h2>Visual ALM</h2>
                 <p>Click on any node in the tree to start a conversation from that point!</p>
+                
+                <!-- Model Selection -->
+                <div class="model-selection">
+                    <label for="modelSelect">Model:</label>
+                    <select id="modelSelect" onchange="handleModelChange()">
+                        <option value="">Loading models...</option>
+                    </select>
+                    <span id="modelStatus" class="model-status">🔄</span>
+                </div>
             </div>
             
             <div class="sidebar-content">

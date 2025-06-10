@@ -88,20 +88,69 @@ def check_ollama_connection() -> bool:
     except requests.RequestException:
         return False
 
+def get_available_models() -> List[Dict[str, Any]]:
+    """Get list of available Ollama models"""
+    try:
+        response = requests.get("http://127.0.0.1:11434/api/tags", timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Extract model information
+        models = []
+        for model in data.get('models', []):
+            models.append({
+                'name': model.get('name', ''),
+                'size': model.get('size', 0),
+                'modified_at': model.get('modified_at', ''),
+                'digest': model.get('digest', '')
+            })
+        
+        # Sort by name for consistent ordering
+        models.sort(key=lambda x: x['name'])
+        return models
+    except requests.RequestException as e:
+        logger.error(f"Error fetching models from Ollama: {e}")
+        return []
+    except (json.JSONDecodeError, KeyError) as e:
+        logger.error(f"Error parsing models response: {e}")
+        return []
+
 @app.route('/')
 def index():
     """Serve the main interface"""
     return render_template('index.html')
 
+@app.route('/api/models', methods=['GET'])
+def get_models():
+    """Get available Ollama models"""
+    try:
+        models = get_available_models()
+        return jsonify({
+            "models": models,
+            "default_model": OLLAMA_MODEL,
+            "count": len(models)
+        })
+    except Exception as e:
+        logger.error(f"Error in models endpoint: {e}")
+        return jsonify({
+            "error": "Failed to fetch models",
+            "models": [],
+            "default_model": OLLAMA_MODEL,
+            "count": 0
+        }), 500
+
 @app.route('/api/status', methods=['GET'])
 def status():
-    """Get system status including Ollama connectivity"""
+    """Get system status including Ollama connectivity and available models"""
     try:
         ollama_connected = check_ollama_connection()
+        models = get_available_models() if ollama_connected else []
+        
         return jsonify({
             "status": "running",
             "ollama_connected": ollama_connected,
             "model": OLLAMA_MODEL,
+            "available_models": len(models),
             "timestamp": datetime.datetime.utcnow().isoformat()
         })
     except Exception as e:
@@ -122,6 +171,7 @@ def chat():
             
         user_input = data.get('message', '').strip()
         parent_id = data.get('parent_id')  # Node to branch from
+        selected_model = data.get('model', OLLAMA_MODEL)  # Allow model selection
         
         if not user_input:
             return jsonify({"error": "Message cannot be empty"}), 400
@@ -129,6 +179,14 @@ def chat():
         # Check if message is too long
         if len(user_input) > 5000:
             return jsonify({"error": "Message too long (max 5000 characters)"}), 400
+        
+        # Validate selected model
+        if selected_model:
+            available_models = get_available_models()
+            model_names = [model['name'] for model in available_models]
+            if selected_model not in model_names and available_models:  # Only validate if we can get models
+                logger.warning(f"Requested model '{selected_model}' not available, using default")
+                selected_model = OLLAMA_MODEL
         
         # Load conversation tree
         tree_data = load_tree_memory()
@@ -146,10 +204,10 @@ Now respond to: {user_input}"""
         else:
             full_prompt = f"You are an autonomous language model. Respond to: {user_input}"
         
-        logger.info(f"Processing chat request from {request.remote_addr}")
+        logger.info(f"Processing chat request from {request.remote_addr} using model: {selected_model}")
         
-        # Query the ALM
-        response = query_ollama(full_prompt)
+        # Query the ALM with selected model
+        response = query_ollama(full_prompt, model=selected_model)
         
         # Create new node
         new_node_id = str(uuid.uuid4())
@@ -158,6 +216,7 @@ Now respond to: {user_input}"""
             "user_input": user_input,
             "ai_response": response,
             "parent_id": parent_id,
+            "model_used": selected_model,  # Store which model was used
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "children": []
         }
@@ -182,6 +241,7 @@ Now respond to: {user_input}"""
         return jsonify({
             "node_id": new_node_id,
             "response": response,
+            "model_used": selected_model,
             "timestamp": new_node["timestamp"]
         })
         

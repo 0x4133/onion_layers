@@ -558,4 +558,66 @@ body {
 
 .path-message:hover {
     background-color: rgba(102, 126, 234, 0.1);
+}
+
+/* Model Selection Styles */
+.model-selection {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.model-selection label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 6px;
+}
+
+.model-selection select {
+    width: calc(100% - 35px);
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    background: white;
+    color: #333;
+    outline: none;
+    transition: border-color 0.3s ease;
+    margin-right: 8px;
+}
+
+.model-selection select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.model-selection select:disabled {
+    background: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.model-status {
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+    font-size: 14px;
+    vertical-align: middle;
+    cursor: help;
+}
+
+.model-status.loading {
+    animation: spin 1s linear infinite;
+}
+
+.model-status.success {
+    color: #28a745;
+}
+
+.model-status.error {
+    color: #dc3545;
 } 

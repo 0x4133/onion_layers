@@ -74,16 +74,19 @@ def save_memory(memory: Dict[str, Any]) -> None:
         raise MemoryError(f"Could not save memory: {e}")
 
 
-def query_ollama(prompt: str) -> str:
+def query_ollama(prompt: str, model: str = OLLAMA_MODEL) -> str:
     """Query the local Ollama model with error handling"""
     if not prompt.strip():
         raise ValueError("Prompt cannot be empty")
+    
+    if not model.strip():
+        model = OLLAMA_MODEL  # Fallback to default
     
     try:
         response = requests.post(
             OLLAMA_URL,
             json={
-                "model": OLLAMA_MODEL,
+                "model": model,
                 "prompt": prompt,
                 "stream": False
             },

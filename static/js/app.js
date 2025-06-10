@@ -7,6 +7,8 @@ let network;
 let selectedNodeId = null;
 let conversationTree = { nodes: {}, root_id: null };
 let ollamaConnected = false;
+let availableModels = [];
+let selectedModel = null;
 
 // Configuration
 const CONFIG = {
@@ -14,7 +16,8 @@ const CONFIG = {
     MAX_DISPLAY_MESSAGES: 10,
     MESSAGE_AUTO_REMOVE_DELAY: 8000,
     STATUS_CHECK_INTERVAL: 30000, // Check Ollama status every 30 seconds
-    NODE_LABEL_MAX_LENGTH: 30
+    NODE_LABEL_MAX_LENGTH: 30,
+    MODEL_STORAGE_KEY: 'alm_selected_model'
 };
 
 // Initialize the network visualization
@@ -353,7 +356,8 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 message: message,
-                parent_id: selectedNodeId
+                parent_id: selectedNodeId,
+                model: selectedModel
             })
         });
         
@@ -364,7 +368,7 @@ async function sendMessage() {
             selectedNodeId = data.node_id;
             await loadTree();
             updateSelectedNodeInfo();
-            showMessage('Message sent successfully!', 'success');
+            showMessage(`Message sent successfully using ${data.model_used || selectedModel}!`, 'success');
         } else {
             showMessage(data.error || 'Error sending message', 'error');
             
@@ -421,9 +425,10 @@ function updateSelectedNodeInfo() {
                 </div>`;
             }
             if (pathNode.ai_response) {
+                const modelUsed = pathNode.model_used || 'Unknown';
                 pathHtml += `<div class="path-message ai-msg">
                     <div class="message-header">
-                        <strong>🤖 ALM:</strong>
+                        <strong>🤖 ALM (${modelUsed}):</strong>
                         <span class="message-time">${new Date(pathNode.timestamp).toLocaleTimeString()}</span>
                     </div>
                     <div class="message-content">${escapeHtml(pathNode.ai_response)}</div>
@@ -648,6 +653,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initNetwork();
     loadTree();
+    loadAvailableModels(); // Load available models
     checkOllamaStatus();
     startPeriodicStatusCheck();
     
@@ -707,3 +713,132 @@ window.checkOllamaStatus = checkOllamaStatus;
 window.exportTree = exportTree;
 window.startFreshChat = startFreshChat;
 window.clearSelection = clearSelection;
+window.handleModelChange = handleModelChange;
+
+// Load available models from server
+async function loadAvailableModels() {
+    try {
+        updateModelStatus('loading', 'Loading models...');
+        
+        const response = await fetch('/api/models');
+        const data = await response.json();
+        
+        if (response.ok && data.models) {
+            availableModels = data.models;
+            populateModelDropdown(data.models, data.default_model);
+            updateModelStatus('success', `${data.models.length} models available`);
+            
+            // Load saved model selection or use default
+            const savedModel = localStorage.getItem(CONFIG.MODEL_STORAGE_KEY);
+            if (savedModel && data.models.some(m => m.name === savedModel)) {
+                selectedModel = savedModel;
+                document.getElementById('modelSelect').value = savedModel;
+            } else {
+                selectedModel = data.default_model;
+                document.getElementById('modelSelect').value = data.default_model;
+            }
+            
+            showMessage(`✅ Loaded ${data.models.length} available models`, 'success');
+        } else {
+            updateModelStatus('error', 'Failed to load models');
+            showMessage('❌ Could not load available models', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading models:', error);
+        updateModelStatus('error', 'Error loading models');
+        showMessage('❌ Error connecting to server for models', 'error');
+    }
+}
+
+// Populate the model dropdown
+function populateModelDropdown(models, defaultModel) {
+    const select = document.getElementById('modelSelect');
+    select.innerHTML = '';
+    
+    if (models.length === 0) {
+        select.innerHTML = '<option value="">No models available</option>';
+        select.disabled = true;
+        return;
+    }
+    
+    // Add models to dropdown
+    models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.name;
+        
+        // Format display text with size info
+        const sizeStr = formatModelSize(model.size);
+        option.textContent = `${model.name}${sizeStr ? ` (${sizeStr})` : ''}`;
+        
+        // Mark default model
+        if (model.name === defaultModel) {
+            option.textContent += ' [Default]';
+        }
+        
+        select.appendChild(option);
+    });
+    
+    select.disabled = false;
+}
+
+// Format model size for display
+function formatModelSize(bytes) {
+    if (!bytes || bytes === 0) return '';
+    
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const size = (bytes / Math.pow(1024, i)).toFixed(1);
+    
+    return `${size}${sizes[i]}`;
+}
+
+// Handle model selection change
+function handleModelChange() {
+    const select = document.getElementById('modelSelect');
+    const newModel = select.value;
+    
+    if (newModel && newModel !== selectedModel) {
+        selectedModel = newModel;
+        
+        // Save to localStorage
+        localStorage.setItem(CONFIG.MODEL_STORAGE_KEY, newModel);
+        
+        // Show confirmation
+        const modelInfo = availableModels.find(m => m.name === newModel);
+        const sizeStr = modelInfo ? ` (${formatModelSize(modelInfo.size)})` : '';
+        showMessage(`🤖 Switched to model: ${newModel}${sizeStr}`, 'success');
+        
+        updateModelStatus('success', 'Model selected');
+        
+        logger.info && logger.info(`Model changed to: ${newModel}`);
+    }
+}
+
+// Update model status indicator
+function updateModelStatus(status, title) {
+    const statusEl = document.getElementById('modelStatus');
+    
+    // Remove all status classes
+    statusEl.classList.remove('loading', 'success', 'error');
+    
+    switch (status) {
+        case 'loading':
+            statusEl.classList.add('loading');
+            statusEl.textContent = '🔄';
+            statusEl.title = title || 'Loading...';
+            break;
+        case 'success':
+            statusEl.classList.add('success');
+            statusEl.textContent = '✅';
+            statusEl.title = title || 'Models loaded successfully';
+            break;
+        case 'error':
+            statusEl.classList.add('error');
+            statusEl.textContent = '❌';
+            statusEl.title = title || 'Error loading models';
+            break;
+        default:
+            statusEl.textContent = '🔄';
+            statusEl.title = 'Unknown status';
+    }
+}
