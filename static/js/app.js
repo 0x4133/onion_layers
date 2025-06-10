@@ -406,17 +406,27 @@ function updateSelectedNodeInfo() {
     
     let pathHtml = '';
     if (conversationPath.length > 0) {
-        pathHtml = '<div class="conversation-path"><h4>Conversation History:</h4>';
+        pathHtml = '<div class="conversation-path">';
+        pathHtml += '<h4>📜 Full Conversation History</h4>';
+        pathHtml += '<div class="conversation-count">Showing ' + conversationPath.length + ' conversation' + (conversationPath.length === 1 ? '' : 's') + ' in this path</div>';
         
         conversationPath.forEach((pathNode, index) => {
             if (pathNode.user_input) {
                 pathHtml += `<div class="path-message user-msg">
-                    <strong>You:</strong> ${escapeHtml(pathNode.user_input)}
+                    <div class="message-header">
+                        <strong>👤 You:</strong>
+                        <span class="message-time">${new Date(pathNode.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="message-content">${escapeHtml(pathNode.user_input)}</div>
                 </div>`;
             }
             if (pathNode.ai_response) {
                 pathHtml += `<div class="path-message ai-msg">
-                    <strong>ALM:</strong> ${escapeHtml(pathNode.ai_response)}
+                    <div class="message-header">
+                        <strong>🤖 ALM:</strong>
+                        <span class="message-time">${new Date(pathNode.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="message-content">${escapeHtml(pathNode.ai_response)}</div>
                 </div>`;
             }
         });
@@ -424,32 +434,74 @@ function updateSelectedNodeInfo() {
         pathHtml += '</div>';
     }
     
+    const currentNode = conversationTree.nodes[selectedNodeId];
+    const hasChildren = currentNode.children && currentNode.children.length > 0;
+    
     infoDiv.innerHTML = `
         <div class="node-info selected-path">
-            <h3>Selected Branch Point</h3>
-            <div class="timestamp">Selected: ${timestamp}</div>
-            <p><strong>📍 Branching from this conversation point</strong></p>
-            <p><em>New messages will continue from here with the conversation history below:</em></p>
+            <h3>🎯 Selected Branch Point</h3>
+            <div class="node-details">
+                <div class="timestamp">📅 Selected: ${timestamp}</div>
+                <div class="branch-info">
+                    ${hasChildren ? 
+                        `<div class="existing-branches">⚡ This point has ${currentNode.children.length} existing branch${currentNode.children.length === 1 ? '' : 'es'}</div>` :
+                        '<div class="no-branches">💡 No branches from this point yet</div>'
+                    }
+                </div>
+            </div>
+            
+            <div class="instruction-panel">
+                <h4>🚀 What happens next?</h4>
+                <p>• New messages will continue from this conversation point</p>
+                <p>• The AI will have access to all previous context shown below</p>
+                <p>• This creates a new branch in your conversation tree</p>
+            </div>
+            
             ${pathHtml}
+            
             <div class="branch-actions">
-                <button onclick="startFreshChat()" class="fresh-chat-btn">Start Fresh Chat</button>
-                <button onclick="clearSelection()" class="clear-selection-btn">Clear Selection</button>
+                <button onclick="startFreshChat()" class="fresh-chat-btn" title="Start completely new conversation">
+                    🆕 Start Fresh Chat
+                </button>
+                <button onclick="clearSelection()" class="clear-selection-btn" title="Deselect current branch point">
+                    ❌ Clear Selection
+                </button>
             </div>
         </div>
     `;
 }
 
-// Reset selected node info to initial state
+// Reset selected node info to initial state with improved instructions
 function resetSelectedNodeInfo() {
     const infoDiv = document.getElementById('selectedNodeInfo');
     infoDiv.innerHTML = `
         <div class="node-info">
-            <h3>Instructions</h3>
-            <p>• Type a message below to start the conversation</p>
-            <p>• Click on any node in the tree to branch from that point</p>
-            <p>• The tree shows your conversation paths visually</p>
-            <p>• Green nodes are your messages, blue are AI responses</p>
-            <p>• Make sure Ollama is running locally</p>
+            <h3>🌟 Welcome to Visual ALM</h3>
+            
+            <div class="welcome-section">
+                <h4>🚀 Getting Started:</h4>
+                <p>• Type a message below to start your first conversation</p>
+                <p>• Watch as your conversation grows into a visual tree</p>
+                <p>• Click on any node to branch from that point</p>
+            </div>
+            
+            <div class="welcome-section">
+                <h4>🎨 Visual Guide:</h4>
+                <p>• <span style="color: #28a745;">🟢 Green nodes</span> are your messages</p>
+                <p>• <span style="color: #007bff;">🔵 Blue nodes</span> are AI responses</p>
+                <p>• Selected nodes have highlighted borders</p>
+            </div>
+            
+            <div class="welcome-section">
+                <h4>⚙️ Status:</h4>
+                <p>• Make sure Ollama is running locally</p>
+                <p>• Click "Check Ollama" button to verify connection</p>
+                <p>• Use "Reset Tree" to start completely fresh</p>
+            </div>
+            
+            <div class="tip-section">
+                <p><strong>💡 Pro Tip:</strong> Try different conversation paths to explore how the AI responds differently to various contexts!</p>
+            </div>
         </div>
     `;
 }
