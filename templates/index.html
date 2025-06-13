@@ -7,6 +7,31 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://unpkg.com/vis-network@latest/dist/vis-network.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { overflow: hidden; height: 100vh; }
+        .container { height: 100vh; position: fixed; overflow: hidden; }
+        .sidebar-footer { position: absolute; bottom: 0; height: 140px; }
+        .sidebar-content { height: calc(100vh - 200px); box-sizing: border-box; }
+        #messages { height: 140px; box-sizing: border-box; word-wrap: break-word; overflow-y: auto; }
+    </style>
+    <script>
+        function showMessage(message, type) {
+            const messagesDiv = document.getElementById('messages');
+            while (messagesDiv.children.length >= 10) {
+                messagesDiv.removeChild(messagesDiv.firstChild);
+            }
+            const messageEl = document.createElement('div');
+            messageEl.className = type;
+            messageEl.textContent = message;
+            messagesDiv.appendChild(messageEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 5000);
+        }
+    </script>
 </head>
 <body>
     <div class="container">

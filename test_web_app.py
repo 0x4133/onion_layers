@@ -133,6 +133,19 @@ class TestFlaskApp(unittest.TestCase):
         response = self.client.get('/api/node/nonexistent')
         self.assertEqual(response.status_code, 404)
 
+    @patch('app.tokenize_prompt')
+    def test_tokenize_endpoint(self, mock_tokenize):
+        """Test tokenize endpoint returns tokens"""
+        mock_tokenize.return_value = [
+            {"token": "Hello", "id": 1, "prob": 0.5}
+        ]
+
+        response = self.client.post('/api/tokenize', json={'prompt': 'Hello'})
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertIn('tokens', data)
+        self.assertEqual(len(data['tokens']), 1)
+
 
 class TestTreeMemoryOperations(unittest.TestCase):
     """Test tree memory operations"""
