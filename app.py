@@ -330,10 +330,10 @@ def load_tree_memory() -> Dict[str, Any]:
         if os.path.exists(TREE_MEMORY_FILE):
             with open(TREE_MEMORY_FILE, "r", encoding='utf-8') as f:
                 return json.load(f)
-        return {"nodes": {}, "root_id": None, "ghost_branches": {}}
+        return {"nodes": {}, "root_id": None}
     except Exception as e:
         logger.error(f"Failed to load tree memory: {e}")
-        return {"nodes": {}, "root_id": None, "ghost_branches": {}}
+        return {"nodes": {}, "root_id": None}
 
 def save_tree_memory(tree_data: Dict[str, Any]) -> None:
     """Save conversation tree to disk"""
